@@ -1,0 +1,640 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  SUPER_ADMIN
+  OFFICE_ADMIN
+  MANAGER
+  AGENT
+  PUBLIC_USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum Currency {
+  EUR
+  ALL
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  VILLA
+  LAND
+  COMMERCIAL
+  OFFICE
+}
+
+enum PropertyStatus {
+  LISTED
+  UNDER_OFFER
+  SOLD
+  RENTED
+  WITHDRAWN
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  LOST
+  CONVERTED
+}
+
+enum OpportunityStage {
+  PROSPECT
+  NEGOTIATION
+  OFFER
+  WON
+  LOST
+}
+
+enum TransactionType {
+  SALE
+  RENT
+}
+
+enum TransactionStatus {
+  OPEN
+  PENDING
+  CLOSED
+  CANCELLED
+}
+
+enum TaskStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
+enum EntityType {
+  CLIENT
+  PROPERTY
+  LEAD
+  OPPORTUNITY
+  TRANSACTION
+}
+
+enum PointActionType {
+  LEAD_CREATED
+  PROPERTY_LISTED
+  NEGOTIATION_DISCOUNT
+  COLLABORATION_SALE
+  SALE_CLOSED
+  RENT_CLOSED
+}
+
+enum ListingStatus {
+  PENDING
+  APPROVED
+  ACTIVE
+  REJECTED
+  EXPIRED
+}
+
+// Models
+model Brand {
+  id        String   @id @default(cuid())
+  name      String
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  offices   Office[]
+}
+
+model Office {
+  id           String         @id @default(cuid())
+  brandId      String
+  name         String
+  city         String
+  address      String
+  phone        String?
+  email        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  brand        Brand          @relation(fields: [brandId], references: [id])
+  users        User[]
+  properties   Property[]
+  clients      Client[]
+  leads        Lead[]
+  opportunities Opportunity[]
+  transactions Transaction[]
+  tasks        Task[]
+  comments     Comment[]
+  vacancies    VacancyApplication[]
+  userListings UserListing[]
+
+  @@index([brandId])
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  passwordHash    String
+  role            UserRole
+  status          UserStatus       @default(ACTIVE)
+  officeId        String?
+  firstName       String
+  lastName        String
+  phone           String?
+  avatar          String?
+  targetSales     Int              @default(0)
+  targetRentals   Int              @default(0)
+  points          Int              @default(0)
+  isAgentOfMonth  Boolean          @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  office          Office?          @relation(fields: [officeId], references: [id])
+  ownedClients    Client[]
+  ownedProperties Property[]       @relation("PropertyOwner")
+  collaboratingProperties Property[] @relation("PropertyCollaborator")
+  assignedLeads   Lead[]
+  ownedOpportunities Opportunity[] @relation("OpportunityOwner")
+  primaryTransactions Transaction[] @relation("PrimaryAgent")
+  collaboratingTransactions Transaction[] @relation("CollaboratingAgent")
+  assignedTasks   Task[]
+  createdTasks    Task[]           @relation("TaskCreator")
+  comments        Comment[]
+  pointsLedger    PointsLedger[]
+  managedUsers    User[]           @relation("ManagerSubordinates")
+  manager         User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  managerId       String?
+  activityLogs    ActivityLog[]
+
+  @@index([email])
+  @@index([officeId])
+  @@index([role])
+  @@index([managerId])
+}
+
+model Client {
+  id                String         @id @default(cuid())
+  firstName         String
+  lastName          String
+  mobile            String
+  email             String?
+  preferredCurrency Currency       @default(EUR)
+  notes             String?        @db.Text
+  ownerAgentId      String?
+  officeId          String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  ownerAgent        User?          @relation(fields: [ownerAgentId], references: [id])
+  office            Office         @relation(fields: [officeId], references: [id])
+  opportunities     Opportunity[]
+  transactions      Transaction[]
+  tasks             Task[]
+  properties        Property[]
+
+  @@index([ownerAgentId])
+  @@index([officeId])
+  @@index([mobile])
+  @@index([email])
+}
+
+model Property {
+  id                    String         @id @default(cuid())
+  officeId              String
+  agentOwnerId          String
+  collaboratingAgentId  String?
+  clientId              String?
+  listingType           TransactionType @default(SALE)
+  title                 String
+  description           String         @db.Text
+  type                  PropertyType
+  city                  String
+  zona                  String
+  address               String
+  bedrooms              Int
+  bathrooms             Int
+  siperfaqeMin          Float
+  siperfaqeMax          Float
+  price                 Float
+  currency              Currency       @default(EUR)
+  ashensor              Boolean        @default(false)
+  status                PropertyStatus @default(LISTED)
+  badges                String[]
+  featured              Boolean        @default(false)
+  gallery               String[]
+  virtualTourUrl        String?
+  yearBuilt             Int?
+  parkingSpaces         Int?
+  balcony               Boolean        @default(false)
+  garden                Boolean        @default(false)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  office                Office         @relation(fields: [officeId], references: [id])
+  agentOwner            User           @relation("PropertyOwner", fields: [agentOwnerId], references: [id])
+  collaboratingAgent    User?          @relation("PropertyCollaborator", fields: [collaboratingAgentId], references: [id])
+  client                Client?        @relation(fields: [clientId], references: [id])
+  opportunities         Opportunity[]
+  transactions          Transaction[]
+  tasks                 Task[]
+  priceHistory          PropertyPriceHistory[]
+  views                 PropertyView[]
+  savedSearches         SavedSearchProperty[]
+  documents             PropertyDocument[]
+
+  @@index([officeId])
+  @@index([agentOwnerId])
+  @@index([collaboratingAgentId])
+  @@index([clientId])
+  @@index([listingType])
+  @@index([city])
+  @@index([zona])
+  @@index([type])
+  @@index([status])
+  @@index([price])
+  @@index([featured])
+  @@index([title, description]) // For full-text search
+}
+
+model PropertyPriceHistory {
+  id         String   @id @default(cuid())
+  propertyId String
+  oldPrice   Float
+  newPrice   Float
+  currency   Currency
+  changedBy  String
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+}
+
+model PropertyView {
+  id         String   @id @default(cuid())
+  propertyId String
+  viewedBy   String?  // Can be userId or sessionId for anonymous
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([viewedBy])
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  leadNumber   String     @unique
+  firstName    String
+  lastName     String
+  mobile       String
+  email        String?
+  rikontakt    DateTime?
+  assignedToId String?
+  officeId     String
+  industry     String?
+  leadSource   String?
+  description  String?    @db.Text
+  status       LeadStatus @default(NEW)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  assignedTo   User?      @relation(fields: [assignedToId], references: [id])
+  office       Office     @relation(fields: [officeId], references: [id])
+  tasks        Task[]
+  opportunities Opportunity[]
+
+  @@index([assignedToId])
+  @@index([officeId])
+  @@index([status])
+  @@index([leadNumber])
+  @@index([mobile])
+}
+
+model Opportunity {
+  id                   String           @id @default(cuid())
+  officeId             String
+  clientId             String
+  leadId               String?
+  ownerAgentId         String?
+  interestedPropertyId String?
+  notes                String?          @db.Text
+  stage                OpportunityStage @default(PROSPECT)
+  estimatedValue       Float?
+  probability          Int?             // 0-100
+  expectedCloseDate    DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  office               Office           @relation(fields: [officeId], references: [id])
+  client               Client           @relation(fields: [clientId], references: [id])
+  lead                 Lead?            @relation(fields: [leadId], references: [id])
+  ownerAgent           User?            @relation("OpportunityOwner", fields: [ownerAgentId], references: [id])
+  interestedProperty   Property?        @relation(fields: [interestedPropertyId], references: [id])
+  transactions         Transaction[]
+  tasks                Task[]
+
+  @@index([officeId])
+  @@index([clientId])
+  @@index([interestedPropertyId])
+  @@index([ownerAgentId])
+  @@index([stage])
+  @@index([leadId])
+}
+
+model Transaction {
+  id                    String            @id @default(cuid())
+  officeId              String
+  type                  TransactionType
+  status                TransactionStatus @default(OPEN)
+  propertyId            String
+  clientId              String
+  opportunityId         String?
+  primaryAgentId        String
+  collaboratingAgentId  String?
+  splitRatio            Float             @default(0.5) // For primary agent
+  closeDate             DateTime?
+  // Financial details
+  grossAmount           Float
+  commissionAmount      Float
+  agentSharePrimary     Float
+  agentShareCollaborator Float?
+  currency              Currency          @default(EUR)
+  // Additional details
+  contractNumber        String?
+  notes                 String?           @db.Text
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  office                Office            @relation(fields: [officeId], references: [id])
+  property              Property          @relation(fields: [propertyId], references: [id])
+  client                Client            @relation(fields: [clientId], references: [id])
+  opportunity           Opportunity?      @relation(fields: [opportunityId], references: [id])
+  primaryAgent          User              @relation("PrimaryAgent", fields: [primaryAgentId], references: [id])
+  collaboratingAgent    User?             @relation("CollaboratingAgent", fields: [collaboratingAgentId], references: [id])
+  tasks                 Task[]
+  documents             Document[]
+
+  @@index([officeId])
+  @@index([propertyId])
+  @@index([clientId])
+  @@index([primaryAgentId])
+  @@index([collaboratingAgentId])
+  @@index([status])
+  @@index([type])
+  @@index([closeDate])
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  officeId       String
+  title          String
+  description    String?    @db.Text
+  dueDate        DateTime
+  assignedToId   String
+  createdById    String
+  relatedToType  EntityType
+  relatedToId    String
+  status         TaskStatus @default(OPEN)
+  recurrence     String?    // RRULE format
+  reminder       Boolean    @default(true)
+  reminderSentAt DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  office         Office     @relation(fields: [officeId], references: [id])
+  assignedTo     User       @relation(fields: [assignedToId], references: [id])
+  createdBy      User       @relation("TaskCreator", fields: [createdById], references: [id])
+  // Polymorphic relations
+  client         Client?    @relation(fields: [relatedToId], references: [id], map: "task_client_fk")
+  property       Property?  @relation(fields: [relatedToId], references: [id], map: "task_property_fk")
+  lead           Lead?      @relation(fields: [relatedToId], references: [id], map: "task_lead_fk")
+  opportunity    Opportunity? @relation(fields: [relatedToId], references: [id], map: "task_opportunity_fk")
+  transaction    Transaction? @relation(fields: [relatedToId], references: [id], map: "task_transaction_fk")
+
+  @@index([officeId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([relatedToType, relatedToId])
+}
+
+model Comment {
+  id            String     @id @default(cuid())
+  authorId      String
+  officeId      String
+  entityType    EntityType
+  entityId      String
+  body          String     @db.Text
+  isInternal    Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  author        User       @relation(fields: [authorId], references: [id])
+  office        Office     @relation(fields: [officeId], references: [id])
+
+  @@index([authorId])
+  @@index([officeId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model PointsLedger {
+  id         String          @id @default(cuid())
+  agentId    String
+  actionType PointActionType
+  points     Int
+  meta       Json?
+  createdAt  DateTime        @default(now())
+  agent      User            @relation(fields: [agentId], references: [id])
+
+  @@index([agentId])
+  @@index([actionType])
+  @@index([createdAt])
+}
+
+model VacancyApplication {
+  id        String   @id @default(cuid())
+  officeId  String?
+  name      String
+  email     String
+  phone     String
+  message   String   @db.Text
+  cvUrl     String
+  position  String?
+  createdAt DateTime @default(now())
+  office    Office?  @relation(fields: [officeId], references: [id])
+
+  @@index([officeId])
+  @@index([email])
+  @@index([createdAt])
+}
+
+model PublicUser {
+  id           String        @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String        @unique
+  phone        String
+  passwordHash String
+  verified     Boolean       @default(false)
+  verifyToken  String?
+  resetToken   String?
+  resetExpires DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  listings     UserListing[]
+
+  @@index([email])
+}
+
+model UserListing {
+  id            String        @id @default(cuid())
+  publicUserId  String
+  officeId      String?
+  title         String
+  description   String        @db.Text
+  city          String
+  zona          String
+  address       String
+  bedrooms      Int
+  bathrooms     Int
+  siperfaqe     Float
+  price         Float
+  currency      Currency      @default(EUR)
+  status        ListingStatus @default(PENDING)
+  gallery       String[]
+  approvedBy    String?
+  approvedAt    DateTime?
+  rejectionReason String?
+  convertedToPropertyId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  publicUser    PublicUser    @relation(fields: [publicUserId], references: [id])
+  office        Office?       @relation(fields: [officeId], references: [id])
+  biddingSlot   BiddingSlot?
+
+  @@index([publicUserId])
+  @@index([officeId])
+  @@index([status])
+  @@index([city])
+  @@index([zona])
+}
+
+model BiddingSlot {
+  id               String      @id @default(cuid())
+  userListingId    String      @unique
+  amountPaid       Float
+  currency         Currency
+  stripePaymentId  String
+  stripeSessionId  String?
+  slotPosition     Int         // 1-10
+  activeUntil      DateTime
+  createdAt        DateTime    @default(now())
+  userListing      UserListing @relation(fields: [userListingId], references: [id])
+
+  @@index([slotPosition])
+  @@index([activeUntil])
+  @@index([amountPaid])
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  body        String   @db.Text
+  variables   String[] // List of available variables
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+}
+
+model SavedSearch {
+  id          String                @id @default(cuid())
+  userId      String?
+  publicUserId String?
+  name        String?
+  criteria    Json                  // Search filters
+  frequency   String?               // daily, weekly, instant
+  lastNotifiedAt DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  properties  SavedSearchProperty[]
+
+  @@index([userId])
+  @@index([publicUserId])
+}
+
+model SavedSearchProperty {
+  id            String      @id @default(cuid())
+  savedSearchId String
+  propertyId    String
+  savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id])
+  property      Property    @relation(fields: [propertyId], references: [id])
+
+  @@unique([savedSearchId, propertyId])
+  @@index([savedSearchId])
+  @@index([propertyId])
+}
+
+model Document {
+  id            String      @id @default(cuid())
+  transactionId String
+  name          String
+  url           String
+  mimeType      String
+  size          Int
+  uploadedBy    String
+  createdAt     DateTime    @default(now())
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId])
+}
+
+model PropertyDocument {
+  id            String   @id @default(cuid())
+  propertyId    String
+  name          String
+  url           String
+  mimeType      String
+  size          Int
+  showInFrontend Boolean @default(false)
+  uploadedBy    String
+  createdAt     DateTime @default(now())
+  property      Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model SystemSettings {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  value         Json
+  description   String?
+  lastUpdatedBy String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([key])
+}

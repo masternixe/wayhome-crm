@@ -1,0 +1,16 @@
+{
+  "name": "Wayhome Real Estate",
+  "short_name": "Wayhome",
+  "description": "Find your dream property in Albania",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

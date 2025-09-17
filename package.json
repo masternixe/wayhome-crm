@@ -1,0 +1,31 @@
+{
+  "name": "wayhome-crm",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev --workspace=@wayhome/api",
+    "dev:web": "npm run dev --workspace=@wayhome/web",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "seed": "npm run seed --workspace=@wayhome/api",
+    "db:push": "npm run db:push --workspace=@wayhome/database",
+    "db:migrate": "npm run db:migrate --workspace=@wayhome/database",
+    "db:studio": "npm run db:studio --workspace=@wayhome/database",
+    "lint": "npm run lint --workspaces",
+    "type-check": "npm run type-check --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
