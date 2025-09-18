@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeftIcon, PhotoIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { notifyError, notifySuccess, flashSuccess, flashError } from '@/lib/notify';
 import CRMHeader from '@/components/crm/CRMHeader';
 import PropertyDocumentManager from '@/components/crm/PropertyDocumentManager';
 import ClientAssignmentModal from '@/components/crm/ClientAssignmentModal';
+import ImageUploadGallery from '@/components/crm/ImageUploadGallery';
 
 interface User {
   id: string;
@@ -197,7 +199,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
       }
     } catch (error) {
       console.error('Failed to fetch property:', error);
-      alert('❌ Gabim gjatë ngarkimit të pronës');
+      notifyError('❌ Gabim gjatë ngarkimit të pronës');
       window.location.href = '/crm/properties';
     } finally {
       setFetchingProperty(false);
@@ -239,18 +241,19 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
       if (response.ok) {
         const data = await response.json();
         console.log('Success response:', data);
-        alert('✅ Prona u përditësua me sukses!');
+        flashSuccess('✅ Prona u përditësua me sukses!');
         window.location.href = `/crm/properties/${params.id}`;
       } else {
         const errorData = await response.json();
         console.error('=== ERROR RESPONSE ===');
         console.error('Status:', response.status);
         console.error('Error data:', errorData);
-        alert(`❌ Gabim: ${errorData.message || 'Nuk mund të përditësohet prona'}`);
+        flashError(`❌ Gabim: ${errorData.message || 'Nuk mund të përditësohet prona'}`);
+        // stay on page, no redirect
       }
     } catch (error) {
       console.error('Error updating property:', error);
-      alert('✅ Prona u përditësua me sukses! (Demo mode - check console for details)');
+      flashSuccess('✅ Prona u përditësua me sukses! (Demo mode)');
       // For demo purposes, redirect anyway
       setTimeout(() => {
         window.location.href = `/crm/properties/${params.id}`;
@@ -277,22 +280,6 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     }));
   };
 
-  const addGalleryImage = () => {
-    const url = prompt('Shkruani URL-në e imazhit:');
-    if (url) {
-      setFormData(prev => ({
-        ...prev,
-        gallery: [...prev.gallery, url]
-      }));
-    }
-  };
-
-  const removeGalleryImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      gallery: prev.gallery.filter((_, i) => i !== index)
-    }));
-  };
 
   if (!user || fetchingProperty) {
     return (
@@ -791,88 +778,12 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
             </div>
 
             {/* Gallery */}
-            <div style={{ marginBottom: '2rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem', color: '#1f2937' }}>
-                Galeria e Imazheve
-              </h2>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minWidth(150px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                {formData.gallery.map((url, index) => (
-                  <div key={index} style={{ 
-                    position: 'relative',
-                    aspectRatio: '1',
-                    background: '#f3f4f6',
-                    borderRadius: '0.5rem',
-                    overflow: 'hidden',
-                    border: '1px solid #d1d5db'
-                  }}>
-                    <img 
-                      src={url} 
-                      alt={`Gallery ${index + 1}`}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (nextElement) nextElement.style.display = 'flex';
-                      }}
-                    />
-                    <div style={{ 
-                      display: 'none',
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      width: '100%', 
-                      height: '100%',
-                      fontSize: '2rem',
-                      color: '#6b7280'
-                    }}>
-                      🖼️
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeGalleryImage(index)}
-                      style={{ 
-                        position: 'absolute',
-                        top: '0.5rem',
-                        right: '0.5rem',
-                        background: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '1.5rem',
-                        height: '1.5rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <XMarkIcon style={{ width: '0.875rem', height: '0.875rem' }} />
-                    </button>
-                  </div>
-                ))}
-                
-                <button
-                  type="button"
-                  onClick={addGalleryImage}
-                  style={{ 
-                    aspectRatio: '1',
-                    background: '#f9fafb',
-                    border: '2px dashed #d1d5db',
-                    borderRadius: '0.5rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    color: '#6b7280'
-                  }}
-                >
-                  <PhotoIcon style={{ width: '2rem', height: '2rem' }} />
-                  <span style={{ fontSize: '0.875rem' }}>Shto Imazh</span>
-                </button>
-              </div>
-            </div>
+            <ImageUploadGallery
+              images={formData.gallery}
+              onImagesChange={(images) => handleInputChange('gallery', images)}
+              canEdit={true}
+              propertyId={params.id}
+            />
 
             {/* Virtual Tour */}
             <div style={{ marginBottom: '2rem' }}>

@@ -13,6 +13,7 @@ interface Property {
   id: string;
   title: string;
   description?: string;
+  listingType?: 'SALE' | 'RENT';
   price: number;
   currency: string;
   type: string;
@@ -91,6 +92,22 @@ export function FeaturedProperties() {
       'LAND': 'Tokë'
     };
     return types[type] || type;
+  };
+
+  const getListingTypeLabel = (listingType: string) => {
+    const types: Record<string, string> = {
+      'SALE': 'Shitje',
+      'RENT': 'Qera'
+    };
+    return types[listingType] || listingType;
+  };
+
+  const getListingTypeBadge = (listingType: string) => {
+    const badges: Record<string, { bg: string, text: string, icon: string }> = {
+      'SALE': { bg: 'bg-green-100', text: 'text-green-800', icon: '💰' },
+      'RENT': { bg: 'bg-blue-100', text: 'text-blue-800', icon: '🏠' }
+    };
+    return badges[listingType] || { bg: 'bg-gray-100', text: 'text-gray-800', icon: '🏢' };
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -201,10 +218,11 @@ export function FeaturedProperties() {
                     />
                   )}
                     
-                    {/* Property Type Badge */}
+                    {/* Listing Type Badge */}
                     <div className="absolute top-4 left-4">
-                      <span className="bg-white/90 backdrop-blur-sm text-orange-600 px-3 py-1 rounded-full text-sm font-medium">
-                        {getPropertyTypeLabel(property.type)}
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getListingTypeBadge(property.listingType || 'SALE').bg} ${getListingTypeBadge(property.listingType || 'SALE').text} shadow-sm backdrop-blur-sm`}>
+                        <span>{getListingTypeBadge(property.listingType || 'SALE').icon}</span>
+                        {getListingTypeLabel(property.listingType || 'SALE')}
                       </span>
                     </div>
 
@@ -212,6 +230,15 @@ export function FeaturedProperties() {
                     {property.featured && (
                       <div className="absolute top-4 right-4 bg-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                         ⭐ E zgjedhur
+                      </div>
+                    )}
+
+                    {/* Property Type Badge */}
+                    {!property.featured && (
+                      <div className="absolute top-4 right-4">
+                        <span className="bg-white/90 backdrop-blur-sm text-orange-600 px-3 py-1 rounded-full text-sm font-medium">
+                          {getPropertyTypeLabel(property.type)}
+                        </span>
                       </div>
                     )}
 
@@ -399,8 +426,16 @@ export function FeaturedProperties() {
                       {/* Gradient Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
 
-                      {/* Property Type Badge */}
+                      {/* Listing Type Badge */}
                       <div className="absolute top-4 left-4 z-10">
+                        <span className={`inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-semibold shadow-lg ${getListingTypeBadge(property.listingType || 'SALE').bg} ${getListingTypeBadge(property.listingType || 'SALE').text} backdrop-blur-sm`}>
+                          <span>{getListingTypeBadge(property.listingType || 'SALE').icon}</span>
+                          {getListingTypeLabel(property.listingType || 'SALE')}
+                        </span>
+                      </div>
+
+                      {/* Property Type Badge */}
+                      <div className="absolute bottom-4 left-4 z-10">
                         <span className="bg-white/95 backdrop-blur-sm text-orange-600 px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
                           {getPropertyTypeLabel(property.type)}
                         </span>
@@ -582,8 +617,16 @@ export function FeaturedProperties() {
                         />
                       )}
                       
-                      {/* Property Type Badge */}
+                      {/* Listing Type Badge */}
                       <div className="absolute top-4 left-4">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getListingTypeBadge(property.listingType || 'SALE').bg} ${getListingTypeBadge(property.listingType || 'SALE').text} shadow-sm backdrop-blur-sm`}>
+                          <span>{getListingTypeBadge(property.listingType || 'SALE').icon}</span>
+                          {getListingTypeLabel(property.listingType || 'SALE')}
+                        </span>
+                      </div>
+
+                      {/* Property Type Badge */}
+                      <div className="absolute top-4 right-4">
                         <span className="bg-white/90 backdrop-blur-sm text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
                           {getPropertyTypeLabel(property.type)}
                         </span>

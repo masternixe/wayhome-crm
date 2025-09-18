@@ -17,6 +17,7 @@ import {
   HomeIcon,
   BanknotesIcon
 } from '@heroicons/react/24/outline';
+import { flashError, flashSuccess } from '@/lib/notify';
 import CRMHeader from '@/components/crm/CRMHeader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { formatPriceWithPreference, convertPrice } from '@/lib/currency';
@@ -109,12 +110,11 @@ interface User {
   officeId?: string;
 }
 
+// Backend-supported stages only: PROSPECT, NEGOTIATION, OFFER, WON, LOST
 const opportunityStages = [
   { value: 'PROSPECT', label: 'Prospekt', color: '#6b7280' },
-  { value: 'QUALIFIED', label: 'I Kualifikuar', color: '#2563eb' },
-  { value: 'PROPOSAL', label: 'Propozim', color: '#f59e0b' },
   { value: 'NEGOTIATION', label: 'Negocim', color: '#8b5cf6' },
-  { value: 'CLOSING', label: 'Mbyllje', color: '#059669' },
+  { value: 'OFFER', label: 'Propozim', color: '#f59e0b' },
   { value: 'WON', label: 'Fituar', color: '#10b981' },
   { value: 'LOST', label: 'Humbur', color: '#ef4444' }
 ];
@@ -137,6 +137,17 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
   const [availableProperties, setAvailableProperties] = useState<any[]>([]);
   const [propertySearchQuery, setPropertySearchQuery] = useState('');
   const currency = useCurrency();
+  const [showConvertForm, setShowConvertForm] = useState(false);
+  const [submittingConversion, setSubmittingConversion] = useState(false);
+  const [convertForm, setConvertForm] = useState({
+    type: 'SALE',
+    grossAmount: '' as unknown as number | '',
+    commissionAmount: '' as unknown as number | '',
+    collaboratingAgentId: '',
+    splitRatio: 0.5,
+    currency: 'EUR',
+    notes: ''
+  });
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -420,49 +431,25 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
     }
   };
 
-  const convertToTransaction = async () => {
+  const convertToTransaction = () => {
     if (!opportunity) return;
-    
-    // Show confirmation dialog
-    const confirmed = confirm(
-      `💰 Konvertim Opportunity në Transaction\n\n` +
-      `Jeni të sigurt që doni ta konvertoni këtë opportunity në transaction?\n\n` +
-      `Klient: ${opportunity.client.firstName} ${opportunity.client.lastName}\n` +
-      `Telefon: ${opportunity.client.mobile}\n` +
-      `Vlera e vlerësuar: ${opportunity.estimatedValue ? formatPriceWithPreference(convertPrice(opportunity.estimatedValue, currency)) : 'N/A'}\n` +
-      `Probabilitet: ${opportunity.probability || 0}%\n` +
-      `${opportunity.interestedProperty ? `Prona: ${opportunity.interestedProperty.title}` : ''}\n\n` +
-      `Ky veprim do të:\n` +
-      `• Krijojë një transaction të re\n` +
-      `• Ndryshojë statusin e opportunity në "WON"\n` +
-      `• Fillojë procesin e komisionit dhe dokumentacionit\n\n` +
-      `Doni të vazhdoni?`
-    );
+    setShowConvertForm(true);
+  };
 
-    if (!confirmed) {
-      return; // User cancelled
+  const submitConversion = async () => {
+    if (!opportunity) return;
+    const gross = Number(convertForm.grossAmount);
+    const commission = Number(convertForm.commissionAmount);
+    if (!['SALE', 'RENT'].includes(convertForm.type)) {
+      flashError('❌ Lloji duhet të jetë SALE ose RENT');
+      return;
     }
-
+    if (!gross || !commission) {
+      flashError('❌ Ju lutem plotësoni shumën bruto dhe komisionin');
+      return;
+    }
+    setSubmittingConversion(true);
     try {
-      // Prompt for transaction details
-      const grossAmount = prompt('Shuma totale e transaksionit (EUR):');
-      if (!grossAmount || isNaN(Number(grossAmount))) {
-        alert('❌ Ju lutem vendosni një shumë të vlefshme');
-        return;
-      }
-
-      const commissionAmount = prompt('Komisioni (EUR):');
-      if (!commissionAmount || isNaN(Number(commissionAmount))) {
-        alert('❌ Ju lutem vendosni një komision të vlefshëm');
-        return;
-      }
-
-      const type = prompt('Lloji i transaksionit (SALE ose RENT):', 'SALE');
-      if (!type || !['SALE', 'RENT'].includes(type.toUpperCase())) {
-        alert('❌ Lloji duhet të jetë SALE ose RENT');
-        return;
-      }
-
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/opportunities/${opportunity.id}/convert-to-transaction`, {
         method: 'POST',
@@ -471,26 +458,26 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: type.toUpperCase(),
-          grossAmount: Number(grossAmount),
-          commissionAmount: Number(commissionAmount),
-          currency: 'EUR',
-          notes: `Converted from opportunity ${opportunity.id}`,
+          type: convertForm.type,
+          grossAmount: gross,
+          commissionAmount: commission,
+          collaboratingAgentId: convertForm.collaboratingAgentId || undefined,
+          splitRatio: Number(convertForm.splitRatio) || 0.5,
+          currency: convertForm.currency,
+          notes: convertForm.notes?.trim() || undefined,
         }),
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert('✅ Opportunity u konvertua në transaction me sukses!');
-        // Redirect to the new transaction
-        window.location.href = `/crm/transactions/${result.data.id}`;
-      } else {
-        const errorData = await response.json();
-        alert(`❌ Gabim: ${errorData.message || 'Nuk mund të konvertohet opportunity'}`);
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result?.message || 'Nuk mund të konvertohet opportunity');
       }
-    } catch (error) {
+      flashSuccess('✅ Opportunity u konvertua në transaction me sukses!');
+      window.location.href = `/crm/transactions/${result.data.id}`;
+    } catch (error: any) {
       console.error('Error converting opportunity:', error);
-      alert(`❌ Gabim gjatë konvertimit: ${error instanceof Error ? error.message : 'Nuk mund të konvertohet opportunity'}`);
+      flashError(`❌ Gabim gjatë konvertimit: ${error?.message || 'Dështoi'}`);
+    } finally {
+      setSubmittingConversion(false);
     }
   };
 
@@ -520,6 +507,11 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
 
   const canEdit = user.role === 'SUPER_ADMIN' || user.role === 'OFFICE_ADMIN' || user.role === 'MANAGER';
   const canDelete = user.role === 'SUPER_ADMIN' || user.role === 'OFFICE_ADMIN';
+  const canConvert = canEdit || (
+    user.role === 'AGENT' && (
+      opportunity.ownerAgent?.id === user.id || opportunity.client?.ownerAgentId === user.id
+    )
+  );
   const stageInfo = getStageInfo(opportunity.stage);
 
   return (
@@ -564,7 +556,7 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
               </Link>
             )}
 
-            {(canEdit && opportunity.interestedProperty && ['NEGOTIATION', 'OFFER', 'WON'].includes(opportunity.stage)) && (
+            {(canConvert && opportunity.interestedProperty) && (
               <button
                 onClick={convertToTransaction}
                 style={{ 
@@ -651,6 +643,64 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
                 </p>
               )}
             </div>
+
+            {/* Convert to Transaction Form */}
+            {showConvertForm && opportunity?.interestedProperty && (
+              <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', marginBottom: '2rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: '0 0 1rem 0' }}>
+                  Konverto në Transaction
+                </h2>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Lloji</label>
+                    <select value={convertForm.type} onChange={e => setConvertForm(prev => ({ ...prev, type: e.target.value }))} style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6 }}>
+                      <option value="SALE">Shitje</option>
+                      <option value="RENT">Qira</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Komisioni Total</label>
+                    <input type="number" value={convertForm.commissionAmount as any} onChange={e => setConvertForm(prev => ({ ...prev, commissionAmount: e.target.value === '' ? '' as any : Number(e.target.value) }))} placeholder="p.sh. 6000" style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Shuma Bruto</label>
+                    <input type="number" value={convertForm.grossAmount as any} onChange={e => setConvertForm(prev => ({ ...prev, grossAmount: e.target.value === '' ? '' as any : Number(e.target.value) }))} placeholder="p.sh. 120000" style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Agjenti Bashkëpunëtor (ops.)</label>
+                    <select value={convertForm.collaboratingAgentId} onChange={e => setConvertForm(prev => ({ ...prev, collaboratingAgentId: e.target.value }))} style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6 }}>
+                      <option value="">Asnjë</option>
+                      {availableAgents.map((a: any) => (
+                        <option key={a.id} value={a.id}>{a.firstName} {a.lastName}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Raporti i Ndarjes</label>
+                    <input type="number" min="0" max="1" step="0.01" value={convertForm.splitRatio} onChange={e => setConvertForm(prev => ({ ...prev, splitRatio: Number(e.target.value) }))} style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Valuta</label>
+                    <select value={convertForm.currency} onChange={e => setConvertForm(prev => ({ ...prev, currency: e.target.value }))} style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6 }}>
+                      <option value="EUR">EUR</option>
+                      <option value="ALL">ALL</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginTop: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Shënime</label>
+                  <input type="text" value={convertForm.notes} onChange={e => setConvertForm(prev => ({ ...prev, notes: e.target.value }))} placeholder={`Converted from opportunity ${opportunity.id}`} style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={() => setShowConvertForm(false)} style={{ background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                    Anulo
+                  </button>
+                  <button type="button" onClick={submitConversion} disabled={submittingConversion} style={{ background: submittingConversion ? '#9ca3af' : '#059669', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: submittingConversion ? 'not-allowed' : 'pointer' }}>
+                    {submittingConversion ? 'Duke krijuar...' : 'Konverto' }
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Stage Management */}
             <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', marginBottom: '2rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>

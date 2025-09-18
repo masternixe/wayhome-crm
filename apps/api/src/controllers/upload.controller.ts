@@ -4,11 +4,15 @@ import { PrismaClient } from '@wayhome/database';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
+import fssync from 'fs';
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'documents');
+    // Determine upload directory based on file type
+    const isImage = file.mimetype.startsWith('image/');
+    const subDir = isImage ? 'images' : 'documents';
+    const uploadDir = path.join(process.cwd(), 'uploads', subDir);
     
     // Create directory if it doesn't exist
     try {
@@ -117,6 +121,301 @@ export class UploadController {
         res.status(500).json({
           success: false,
           message: 'Failed to upload file',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+  ];
+
+  /**
+   * Upload single client document
+   * POST /api/v1/upload/client-document
+   */
+  uploadClientDocument = [
+    upload.single('file'),
+    async (req: Request, res: Response): Promise<void> => {
+      try {
+        const authReq = req as AuthRequest;
+        const file = req.file;
+        const { clientId } = req.body as { clientId?: string };
+
+        if (!file) {
+          res.status(400).json({ success: false, message: 'No file uploaded' });
+          return;
+        }
+        if (!clientId) {
+          res.status(400).json({ success: false, message: 'clientId is required' });
+          return;
+        }
+
+        // Move file into client-specific folder: uploads/documents/clients/:clientId
+        const baseDir = path.join(process.cwd(), 'uploads', 'documents');
+        const clientDir = path.join(baseDir, 'clients', clientId);
+        await fs.mkdir(clientDir, { recursive: true });
+
+        const tmpPath = path.join(baseDir, file.filename);
+        const finalPath = path.join(clientDir, file.filename);
+        try {
+          await fs.rename(tmpPath, finalPath);
+        } catch (err) {
+          // In case file was already in place (e.g., different storage behavior), copy as fallback
+          if (fssync.existsSync(tmpPath)) {
+            await fs.copyFile(tmpPath, finalPath).catch(() => undefined);
+            await fs.unlink(tmpPath).catch(() => undefined);
+          }
+        }
+
+        const baseUrl = process.env.API_URL || 'http://localhost:4001';
+        const fileUrl = `${baseUrl}/api/v1/uploads/documents/clients/${clientId}/${file.filename}`;
+
+        res.json({
+          success: true,
+          data: {
+            id: file.filename,
+            url: fileUrl,
+            originalName: file.originalname,
+            size: file.size,
+            type: file.mimetype,
+            uploadedBy: authReq.user.userId,
+            uploadedAt: new Date().toISOString(),
+          },
+          message: 'Client document uploaded successfully',
+        });
+      } catch (error) {
+        console.error('Client document upload error:', error);
+        res.status(500).json({ success: false, message: 'Failed to upload client document' });
+      }
+    }
+  ];
+
+  /**
+   * Upload multiple client documents
+   * POST /api/v1/upload/client-documents
+   */
+  uploadClientDocuments = [
+    upload.array('files'),
+    async (req: Request, res: Response): Promise<void> => {
+      try {
+        const authReq = req as AuthRequest;
+        const files = (req as any).files as Express.Multer.File[] | undefined;
+        const { clientId } = req.body as { clientId?: string };
+
+        if (!files || files.length === 0) {
+          res.status(400).json({ success: false, message: 'No files uploaded' });
+          return;
+        }
+        if (!clientId) {
+          res.status(400).json({ success: false, message: 'clientId is required' });
+          return;
+        }
+
+        const baseDir = path.join(process.cwd(), 'uploads', 'documents');
+        const clientDir = path.join(baseDir, 'clients', clientId);
+        await fs.mkdir(clientDir, { recursive: true });
+
+        const baseUrl = process.env.API_URL || 'http://localhost:4001';
+        const results: any[] = [];
+
+        for (const file of files) {
+          const tmpPath = path.join(baseDir, file.filename);
+          const finalPath = path.join(clientDir, file.filename);
+          try {
+            await fs.rename(tmpPath, finalPath);
+          } catch (err) {
+            if (fssync.existsSync(tmpPath)) {
+              await fs.copyFile(tmpPath, finalPath).catch(() => undefined);
+              await fs.unlink(tmpPath).catch(() => undefined);
+            }
+          }
+
+          results.push({
+            id: file.filename,
+            url: `${baseUrl}/api/v1/uploads/documents/clients/${clientId}/${file.filename}`,
+            originalName: file.originalname,
+            size: file.size,
+            type: file.mimetype,
+            uploadedBy: authReq.user.userId,
+            uploadedAt: new Date().toISOString(),
+          });
+        }
+
+        res.json({ success: true, data: results, message: 'Client documents uploaded successfully' });
+      } catch (error) {
+        console.error('Client documents upload error:', error);
+        res.status(500).json({ success: false, message: 'Failed to upload client documents' });
+      }
+    }
+  ];
+
+  /**
+   * Delete single client document
+   * DELETE /api/v1/upload/client-document/:clientId/:filename
+   */
+  deleteClientDocument = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { clientId, filename } = req.params as { clientId: string; filename: string };
+      if (!clientId || !filename) {
+        res.status(400).json({ success: false, message: 'clientId and filename are required' });
+        return;
+      }
+      const filePath = path.join(process.cwd(), 'uploads', 'documents', 'clients', clientId, filename);
+      try {
+        await fs.unlink(filePath);
+      } catch (err) {
+        if ((err as any).code === 'ENOENT') {
+          res.status(404).json({ success: false, message: 'Document not found' });
+          return;
+        }
+        throw err;
+      }
+      res.json({ success: true, message: 'Client document deleted successfully' });
+    } catch (error) {
+      console.error('Client document deletion error:', error);
+      res.status(500).json({ success: false, message: 'Failed to delete client document' });
+    }
+  };
+  /**
+   * Upload multiple documents
+   * POST /api/v1/upload/documents
+   */
+  uploadDocuments = [
+    upload.array('files'),
+    async (req: Request, res: Response): Promise<void> => {
+      try {
+        const authReq = req as AuthRequest;
+        const files = (req as any).files as Express.Multer.File[] | undefined;
+
+        if (!files || files.length === 0) {
+          res.status(400).json({
+            success: false,
+            message: 'No files uploaded',
+          });
+          return;
+        }
+
+        const baseUrl = process.env.API_URL || 'http://localhost:4001';
+        const { propertyId } = req.body;
+
+        // Persist property documents if a propertyId is provided
+        const createdDocs = [] as Array<{ id: string, url: string, originalName: string, size: number, type: string, uploadedBy: string, uploadedAt: string }>;
+
+        for (const file of files) {
+          const fileUrl = `${baseUrl}/api/v1/uploads/${file.mimetype.startsWith('image/') ? 'images' : 'documents'}/${file.filename}`;
+
+          if (propertyId) {
+            try {
+              const record = await this.prisma.propertyDocument.create({
+                data: {
+                  propertyId,
+                  name: file.originalname,
+                  url: fileUrl,
+                  mimeType: file.mimetype,
+                  size: file.size,
+                  showInFrontend: false,
+                  uploadedBy: authReq.user.userId,
+                },
+              });
+
+              createdDocs.push({
+                id: record.id,
+                url: fileUrl,
+                originalName: file.originalname,
+                size: file.size,
+                type: file.mimetype,
+                uploadedBy: authReq.user.userId,
+                uploadedAt: new Date().toISOString(),
+              });
+            } catch (err) {
+              // If DB save fails for a file, still include it as a basic upload
+              createdDocs.push({
+                id: file.filename,
+                url: fileUrl,
+                originalName: file.originalname,
+                size: file.size,
+                type: file.mimetype,
+                uploadedBy: authReq.user.userId,
+                uploadedAt: new Date().toISOString(),
+              });
+            }
+          } else {
+            createdDocs.push({
+              id: file.filename,
+              url: fileUrl,
+              originalName: file.originalname,
+              size: file.size,
+              type: file.mimetype,
+              uploadedBy: authReq.user.userId,
+              uploadedAt: new Date().toISOString(),
+            });
+          }
+        }
+
+        res.json({
+          success: true,
+          data: createdDocs,
+          message: 'Files uploaded successfully',
+        });
+      } catch (error) {
+        console.error('Multiple files upload error:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to upload files',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+  ];
+
+  /**
+   * Upload image
+   * POST /api/v1/upload/image
+   */
+  uploadImage = [
+    upload.single('file'),
+    async (req: Request, res: Response): Promise<void> => {
+      try {
+        const authReq = req as AuthRequest;
+        const file = req.file;
+
+        if (!file) {
+          res.status(400).json({
+            success: false,
+            message: 'No file uploaded',
+          });
+          return;
+        }
+
+        // Validate that it's an image
+        if (!file.mimetype.startsWith('image/')) {
+          res.status(400).json({
+            success: false,
+            message: 'File must be an image',
+          });
+          return;
+        }
+
+        // Generate public URL for the file
+        const baseUrl = process.env.API_URL || 'http://localhost:4001';
+        const fileUrl = `${baseUrl}/api/v1/uploads/images/${file.filename}`;
+
+        res.json({
+          success: true,
+          data: {
+            id: file.filename,
+            url: fileUrl,
+            originalName: file.originalname,
+            size: file.size,
+            type: file.mimetype,
+            uploadedBy: authReq.user.userId,
+            uploadedAt: new Date().toISOString(),
+          },
+          message: 'Image uploaded successfully',
+        });
+      } catch (error) {
+        console.error('Image upload error:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to upload image',
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }

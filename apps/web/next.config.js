@@ -2,7 +2,7 @@
 const nextConfig = {
   // App directory is now stable in Next.js 14
   images: {
-    domains: ['images.unsplash.com', 'via.placeholder.com', 'res.cloudinary.com', 'wayhome.al'],
+    domains: ['images.unsplash.com', 'via.placeholder.com', 'res.cloudinary.com', 'wayhome.al', 'localhost'],
     formats: ['image/webp', 'image/avif'],
   },
   env: {

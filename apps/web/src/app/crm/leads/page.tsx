@@ -91,22 +91,28 @@ export default function CRMLeadsPage() {
     assignedToId: ''
   });
 
+  // Initialize user and default filters once
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      // Auto-filter to agent's own leads if they're an agent
       if (parsedUser.role === 'AGENT') {
-        setFilters(prev => ({ ...prev, assignedToId: parsedUser.id }));
+        setFilters(prev => (
+          prev.assignedToId === parsedUser.id ? prev : { ...prev, assignedToId: parsedUser.id }
+        ));
       }
     } else {
       window.location.href = '/crm';
       return;
     }
 
-    fetchLeads();
     fetchAgents();
+  }, []);
+
+  // Fetch leads when filters change
+  useEffect(() => {
+    fetchLeads();
   }, [filters]);
 
   const fetchLeads = async () => {

@@ -18,6 +18,7 @@ import {
   UserPlusIcon,
   DocumentIcon
 } from '@heroicons/react/24/outline';
+import { notifyError, notifySuccess, flashSuccess, flashError } from '@/lib/notify';
 import CRMHeader from '@/components/crm/CRMHeader';
 
 import ClientAssignmentModal from '@/components/crm/ClientAssignmentModal';
@@ -26,6 +27,7 @@ interface Property {
   id: string;
   title: string;
   description: string;
+  listingType?: 'SALE' | 'RENT';
   type: string;
   city: string;
   zona: string;
@@ -116,6 +118,35 @@ interface User {
   officeId?: string;
 }
 
+// Helper functions
+const getPropertyTypeLabel = (type: string) => {
+  const types: Record<string, string> = {
+    'APARTMENT': 'Apartament',
+    'HOUSE': 'Shtëpi',
+    'VILLA': 'Vilë',
+    'COMMERCIAL': 'Komercial',
+    'OFFICE': 'Zyrë',
+    'LAND': 'Tokë'
+  };
+  return types[type] || type;
+};
+
+const getListingTypeLabel = (listingType: string) => {
+  const types: Record<string, string> = {
+    'SALE': 'Shitje',
+    'RENT': 'Qera'
+  };
+  return types[listingType] || listingType;
+};
+
+const getListingTypeColor = (listingType: string) => {
+  const colors: Record<string, {bg: string, text: string}> = {
+    'SALE': { bg: '#ecfdf5', text: '#059669' }, // Green for sale
+    'RENT': { bg: '#eff6ff', text: '#2563eb' }  // Blue for rent
+  };
+  return colors[listingType] || { bg: '#f3f4f6', text: '#6b7280' };
+};
+
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -180,6 +211,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       }
     } catch (error) {
       console.error('Failed to fetch property:', error);
+      notifyError('❌ Gabim gjatë ngarkimit të pronës');
       // Mock data fallback
       setProperty({
         id: params.id,
@@ -305,17 +337,17 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       });
 
       if (response.ok) {
-        alert('✅ Komenti u shtua me sukses!');
+        notifySuccess('✅ Komenti u shtua me sukses!');
         setNewComment('');
         setShowCommentForm(false);
         fetchProperty(); // Refresh the property data to show the new comment
       } else {
         const errorData = await response.json();
-        alert(`❌ Gabim: ${errorData.message || 'Nuk mund të shtohet komenti'}`);
+        notifyError(`❌ Gabim: ${errorData.message || 'Nuk mund të shtohet komenti'}`);
       }
     } catch (error) {
       console.error('Error adding comment:', error);
-      alert(`❌ Gabim gjatë shtimit të komentit: ${error instanceof Error ? error.message : 'Nuk mund të shtohet komenti'}`);
+      notifyError(`❌ Gabim gjatë shtimit të komentit: ${error instanceof Error ? error.message : 'Nuk mund të shtohet komenti'}`);
     }
   };
 
@@ -327,12 +359,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       }
       
       if (client) {
-        alert(`✅ Klienti ${client.firstName} ${client.lastName} u caktua me sukses! (Demo mode)`);
+        notifySuccess(`✅ Klienti ${client.firstName} ${client.lastName} u caktua me sukses! (Demo mode)`);
       } else {
-        alert('✅ Klienti u hoq nga prona! (Demo mode)');
+        notifySuccess('✅ Klienti u hoq nga prona! (Demo mode)');
       }
     } catch (error) {
-      alert('❌ Gabim gjatë caktimit të klientit');
+      notifyError('❌ Gabim gjatë caktimit të klientit');
     }
   };
 
@@ -353,13 +385,13 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       });
 
       if (response.ok) {
-        alert('✅ Prona u fshi me sukses!');
+        flashSuccess('✅ Prona u fshi me sukses!');
         window.location.href = '/crm/properties';
       } else {
-        alert('❌ Gabim gjatë fshirjes së pronës');
+        flashError('❌ Gabim gjatë fshirjes së pronës');
       }
     } catch (error) {
-      alert('✅ Prona u fshi me sukses! (Demo mode)');
+      flashSuccess('✅ Prona u fshi me sukses! (Demo mode)');
       setTimeout(() => {
         window.location.href = '/crm/properties';
       }, 1000);
@@ -551,7 +583,19 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 Detajet e Pronës
               </h2>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minWidth(200px, 1fr))', gap: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ textAlign: 'center', padding: '1rem', background: getListingTypeColor(property.listingType || 'SALE').bg, borderRadius: '0.75rem', border: `2px solid ${getListingTypeColor(property.listingType || 'SALE').text}` }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{property.listingType === 'RENT' ? '🏠' : '💰'}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: getListingTypeColor(property.listingType || 'SALE').text }}>{getListingTypeLabel(property.listingType || 'SALE')}</div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Lloji i Listimit</div>
+                </div>
+                
+                <div style={{ textAlign: 'center', padding: '1rem', background: '#f0f9ff', borderRadius: '0.75rem', border: '2px solid #0369a1' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏢</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0369a1' }}>{getPropertyTypeLabel(property.type)}</div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Lloji i Pronës</div>
+                </div>
+                
                 <div style={{ textAlign: 'center', padding: '1rem', background: '#f9fafb', borderRadius: '0.75rem' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🛏️</div>
                   <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>{property.bedrooms}</div>

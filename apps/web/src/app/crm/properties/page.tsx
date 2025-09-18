@@ -136,6 +136,22 @@ export default function CRMPropertiesPage() {
     return colors[status] || { bg: '#f3f4f6', text: '#6b7280' };
   };
 
+  const getListingTypeLabel = (listingType: string) => {
+    const types: Record<string, string> = {
+      'SALE': 'Shitje',
+      'RENT': 'Qera'
+    };
+    return types[listingType] || listingType;
+  };
+
+  const getListingTypeColor = (listingType: string) => {
+    const colors: Record<string, {bg: string, text: string}> = {
+      'SALE': { bg: '#ecfdf5', text: '#059669' }, // Green for sale
+      'RENT': { bg: '#eff6ff', text: '#2563eb' }  // Blue for rent
+    };
+    return colors[listingType] || { bg: '#f3f4f6', text: '#6b7280' };
+  };
+
   useEffect(() => {
     // Get user from localStorage
     const userData = localStorage.getItem('user');
@@ -476,7 +492,7 @@ export default function CRMPropertiesPage() {
                 {/* Table Header */}
                 <div style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: '40px 1fr 120px 140px 120px 100px 120px 150px 100px 120px', 
+                  gridTemplateColumns: '40px 1fr 120px 140px 120px 100px 100px 120px 150px 100px 120px', 
                   gap: '1rem',
                   padding: '1rem',
                   background: '#f9fafb',
@@ -500,6 +516,7 @@ export default function CRMPropertiesPage() {
                   <span>Listim</span>
                   <span>Klienti</span>
                   <span>Lloji</span>
+                  <span>Listim Tip</span>
                   <span>Statusi</span>
                   <span>Çmimi</span>
                   <span>Agjenti</span>
@@ -511,7 +528,7 @@ export default function CRMPropertiesPage() {
                 {properties.map((property) => (
                   <div key={property.id} style={{ 
                     display: 'grid', 
-                    gridTemplateColumns: '40px 1fr 120px 140px 120px 100px 120px 150px 100px 120px', 
+                    gridTemplateColumns: '40px 1fr 120px 140px 120px 100px 100px 120px 150px 100px 120px', 
                     gap: '1rem',
                     padding: '1rem',
                     borderBottom: '1px solid #f3f4f6',
@@ -578,6 +595,19 @@ export default function CRMPropertiesPage() {
                     </div>
                     
                     <span style={{ color: '#6b7280' }}>{getPropertyTypeLabel(property.type)}</span>
+                    
+                    <div>
+                      <span style={{ 
+                        background: getListingTypeColor(property.listingType || 'SALE').bg, 
+                        color: getListingTypeColor(property.listingType || 'SALE').text, 
+                        padding: '0.25rem 0.5rem', 
+                        borderRadius: '1rem', 
+                        fontSize: '0.75rem',
+                        fontWeight: '500'
+                      }}>
+                        {getListingTypeLabel(property.listingType || 'SALE')}
+                      </span>
+                    </div>
                     
                     <div>
                       <span style={{ 
@@ -841,6 +871,19 @@ export default function CRMPropertiesPage() {
                           fontWeight: '500'
                         }}>
                           {getPropertyTypeLabel(property.type)}
+                        </span>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Listim Tip</div>
+                        <span style={{ 
+                          padding: '0.25rem 0.5rem', 
+                          background: getListingTypeColor(property.listingType || 'SALE').bg, 
+                          color: getListingTypeColor(property.listingType || 'SALE').text, 
+                          borderRadius: '0.375rem', 
+                          fontSize: '0.75rem',
+                          fontWeight: '500'
+                        }}>
+                          {getListingTypeLabel(property.listingType || 'SALE')}
                         </span>
                       </div>
                     </div>

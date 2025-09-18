@@ -66,24 +66,25 @@ async function createApp() {
         imgSrc: ["'self'", "data:", "https:"],
       },
     },
+    // Allow images and other static resources to be consumed cross-origin (for CRM/frontend)
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
 
   // CORS configuration
-  app.use(cors({
+  const corsOptions = {
     origin: [
       process.env.WEB_URL || 'http://localhost:4000',
       process.env.CRM_URL || 'http://localhost:4000/crm',
     ],
     credentials: true,
-  }));
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  };
+  
+  app.use(cors(corsOptions));
+  
   // Explicitly handle preflight requests
-  app.options('*', cors({
-    origin: [
-      process.env.WEB_URL || 'http://localhost:4000',
-      process.env.CRM_URL || 'http://localhost:4000/crm',
-    ],
-    credentials: true,
-  }));
+  app.options('*', cors(corsOptions));
 
   // Rate limiting
   const limiter = rateLimit({

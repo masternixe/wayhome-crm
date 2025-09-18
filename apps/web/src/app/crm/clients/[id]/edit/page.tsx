@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import CRMHeader from '@/components/crm/CRMHeader';
+import ClientDocumentManager from '@/components/crm/ClientDocumentManager';
 
 interface User {
   id: string;
@@ -78,6 +79,16 @@ export default function ClientEditPage({ params }: { params: { id: string } }) {
     e.preventDefault();
     setSaving(true);
     try {
+      // Clean payload: convert empty optional fields to undefined to satisfy validation
+      const cleaned = {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        mobile: form.mobile.trim(),
+        email: form.email && form.email.trim() !== '' ? form.email.trim() : undefined,
+        preferredCurrency: form.preferredCurrency,
+        notes: form.notes && form.notes.trim() !== '' ? form.notes.trim() : undefined,
+      };
+
       const token = localStorage.getItem('access_token');
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${params.id}`, {
         method: 'PATCH',
@@ -85,7 +96,7 @@ export default function ClientEditPage({ params }: { params: { id: string } }) {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(cleaned),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -193,6 +204,11 @@ export default function ClientEditPage({ params }: { params: { id: string } }) {
               placeholder="Shënime ose detaje shtesë për klientin..."
               style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', resize: 'vertical' }}
             />
+          </div>
+
+          {/* Client Documents */}
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
+            <ClientDocumentManager clientId={params.id} />
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>

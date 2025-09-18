@@ -10,7 +10,8 @@ export class DashboardController {
 
       // Build base filters based on user role
       const officeFilter = user.role !== 'SUPER_ADMIN' ? { officeId: user.officeId } : {};
-      const agentFilter = user.role === 'AGENT' ? { ownerAgentId: user.userId } : {};
+      // Note: For properties the field is agentOwnerId; for clients it's ownerAgentId
+      const clientAgentFilter = user.role === 'AGENT' ? { ownerAgentId: user.userId } : {};
 
       // Get current month and last month dates
       const now = new Date();
@@ -62,12 +63,15 @@ export class DashboardController {
       ] = await Promise.all([
         // Properties
         this.prisma.property.count({
-          where: { ...officeFilter, ...agentFilter },
+          where: { 
+            ...officeFilter, 
+            ...(user.role === 'AGENT' ? { agentOwnerId: user.userId } : {}),
+          },
         }),
         this.prisma.property.count({
           where: {
             ...officeFilter,
-            ...agentFilter,
+            ...(user.role === 'AGENT' ? { agentOwnerId: user.userId } : {}),
             createdAt: { gte: currentMonthStart },
           },
         }),
@@ -93,29 +97,34 @@ export class DashboardController {
         
         // Opportunities
         this.prisma.opportunity.count({
-          where: officeFilter,
+          where: {
+            ...officeFilter,
+            ...(user.role === 'AGENT' ? { ownerAgentId: user.userId } : {}),
+          },
         }),
         this.prisma.opportunity.count({
           where: {
             ...officeFilter,
+            ...(user.role === 'AGENT' ? { ownerAgentId: user.userId } : {}),
             stage: { in: ['PROSPECT', 'NEGOTIATION', 'OFFER'] },
           },
         }),
         this.prisma.opportunity.count({
           where: {
             ...officeFilter,
+            ...(user.role === 'AGENT' ? { ownerAgentId: user.userId } : {}),
             stage: 'WON',
           },
         }),
         
         // Clients
         this.prisma.client.count({
-          where: { ...officeFilter, ...agentFilter },
+          where: { ...officeFilter, ...clientAgentFilter },
         }),
         this.prisma.client.count({
           where: {
             ...officeFilter,
-            ...agentFilter,
+            ...clientAgentFilter,
             createdAt: { gte: currentMonthStart },
           },
         }),
@@ -195,7 +204,10 @@ export class DashboardController {
         
         // Recent activities
         this.prisma.property.findMany({
-          where: { ...officeFilter, ...agentFilter },
+          where: { 
+            ...officeFilter, 
+            ...(user.role === 'AGENT' ? { agentOwnerId: user.userId } : {}),
+          },
           select: {
             id: true,
             title: true,
@@ -223,7 +235,10 @@ export class DashboardController {
           take: 5,
         }),
         this.prisma.opportunity.findMany({
-          where: officeFilter,
+          where: { 
+            ...officeFilter,
+            ...(user.role === 'AGENT' ? { ownerAgentId: user.userId } : {}),
+          },
           select: {
             id: true,
             stage: true,

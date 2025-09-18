@@ -202,6 +202,7 @@ export class OpportunityController {
               mobile: true,
               email: true,
               preferredCurrency: true,
+              ownerAgentId: true,
             },
           },
           lead: {
@@ -726,9 +727,9 @@ export class OpportunityController {
         return;
       }
 
-      // Calculate agent shares
-      const agentSharePrimary = grossAmount * splitRatio;
-      const agentShareCollaborator = collaboratingAgentId ? grossAmount * (1 - splitRatio) : null;
+      // Calculate agent shares based on commission (not gross)
+      const agentSharePrimary = commissionAmount * splitRatio;
+      const agentShareCollaborator = collaboratingAgentId ? commissionAmount * (1 - splitRatio) : null;
 
       // Create transaction with agent from opportunity
       const transaction = await this.prisma.transaction.create({

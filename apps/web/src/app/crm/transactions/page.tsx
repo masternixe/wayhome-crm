@@ -88,20 +88,25 @@ export default function CRMTransactionsPage() {
   });
   const currency = useCurrency();
 
+  // Initialize user and default filters once
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      // Auto-filter to agent's own transactions if they're an agent
       if (parsedUser.role === 'AGENT') {
-        setFilters(prev => ({ ...prev, agentId: parsedUser.id }));
+        setFilters(prev => (
+          prev.agentId === parsedUser.id ? prev : { ...prev, agentId: parsedUser.id }
+        ));
       }
     } else {
       window.location.href = '/crm';
       return;
     }
+  }, []);
 
+  // Fetch whenever filters change
+  useEffect(() => {
     fetchTransactions();
   }, [filters]);
 
@@ -245,7 +250,7 @@ export default function CRMTransactionsPage() {
             </p>
           </div>
           <button
-            onClick={handleCreateTransaction}
+            onClick={() => (window.location.href = '/crm/transactions/new')}
             style={{
               display: 'flex',
               alignItems: 'center',

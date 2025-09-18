@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import express from 'express';
+import path from 'path';
 import { PrismaClient } from '@wayhome/database';
 import { AuthService } from '../services/auth.service';
 import { PointsService } from '../services/points.service';
@@ -19,8 +21,6 @@ import { SettingsController } from '../controllers/settings.controller';
 import { UploadController } from '../controllers/upload.controller';
 import { AuthMiddleware, requireAuth, requireAgent, requireManager, requireOfficeAdmin, requireSuperAdmin } from '../middleware/auth.middleware';
 import Redis from 'ioredis';
-import express from 'express';
-import path from 'path';
 
 export function createRoutes(
   prisma: PrismaClient,
@@ -148,12 +148,17 @@ export function createRoutes(
 
   // Upload routes
   router.post('/upload/document', requireAuth(authService), ...uploadController.uploadDocument);
+  router.post('/upload/documents', requireAuth(authService), ...uploadController.uploadDocuments);
+  router.post('/upload/image', requireAuth(authService), ...uploadController.uploadImage);
+  // Client documents
+  router.post('/upload/client-document', requireAuth(authService), ...uploadController.uploadClientDocument);
+  router.post('/upload/client-documents', requireAuth(authService), ...uploadController.uploadClientDocuments);
+  router.delete('/upload/client-document/:clientId/:filename', requireAuth(authService), uploadController.deleteClientDocument.bind(uploadController));
   router.delete('/upload/document/:id', requireAuth(authService), uploadController.deleteDocument.bind(uploadController));
   router.patch('/upload/document/:id/visibility', requireAuth(authService), uploadController.updateDocumentVisibility.bind(uploadController));
   router.get('/properties/:id/documents', requireAgent(authService), propertyController.getDocuments.bind(propertyController));
   
-  // Serve uploaded files
-  router.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Note: uploads static route is configured later with permissive cross-origin headers
 
   // Global search
   router.get('/search', requireAuth(authService), async (req, res) => {
@@ -834,6 +839,24 @@ export function createRoutes(
       });
     }
   });
+
+  // Upload routes
+  router.post('/upload', requireAuth(authService), ...uploadController.uploadDocument);
+  router.post('/upload/image', requireAuth(authService), ...uploadController.uploadImage);
+
+  // Serve uploaded files with CORS headers
+  router.use('/uploads', (req, res, next) => {
+    // Override security headers for uploads
+    res.removeHeader('Cross-Origin-Resource-Policy');
+    res.removeHeader('Cross-Origin-Opener-Policy');
+    
+    // Set permissive CORS headers
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  }, express.static(path.join(process.cwd(), 'uploads')));
 
   return router;
 }

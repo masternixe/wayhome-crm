@@ -104,24 +104,29 @@ export default function CRMOpportunitiesPage() {
   });
   const currency = useCurrency();
 
+  // Initialize user and default filters once
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      
-      // Auto-filter to agent's own opportunities if they're an agent
       if (parsedUser.role === 'AGENT') {
-        setFilters(prev => ({ ...prev, assignedToId: parsedUser.id }));
+        setFilters(prev => (
+          prev.assignedToId === parsedUser.id ? prev : { ...prev, assignedToId: parsedUser.id }
+        ));
       } else if (parsedUser.role !== 'SUPER_ADMIN') {
-        // Auto-filter to user's office if they're not super admin
-        setFilters(prev => ({ ...prev, officeId: parsedUser.officeId || '' }));
+        setFilters(prev => (
+          prev.officeId === (parsedUser.officeId || '') ? prev : { ...prev, officeId: parsedUser.officeId || '' }
+        ));
       }
     } else {
       window.location.href = '/crm';
       return;
     }
+  }, []);
 
+  // Fetch opportunities when filters change
+  useEffect(() => {
     fetchOpportunities();
   }, [filters]);
 

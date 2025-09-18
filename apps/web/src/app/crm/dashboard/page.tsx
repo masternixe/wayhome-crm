@@ -91,7 +91,8 @@ function DashboardContent() {
           totalOpportunities: response.data.overview?.totalOpportunities || 0,
           totalTransactions: response.data.overview?.totalTransactions || 0,
           totalRevenue: response.data.overview?.totalRevenue || 0, // Show TOTAL revenue from all closed deals
-          myProperties: response.data.thisMonth?.newProperties || 0,
+          // Show the agent's total properties (not just this month's)
+          myProperties: response.data.overview?.totalProperties || 0,
           myLeads: response.data.thisMonth?.newLeads || 0,
           myDeals: response.data.opportunities?.won || 0,
           myPoints: response.data.performance?.myPoints || 0

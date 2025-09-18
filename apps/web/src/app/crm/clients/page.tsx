@@ -75,19 +75,25 @@ export default function CRMClientsPage() {
     notes: ''
   });
 
+  // Initialize user and default filters once
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       if (parsedUser.role === 'AGENT') {
-        setFilters(prev => ({ ...prev, agentId: parsedUser.id }));
+        setFilters(prev => (
+          prev.agentId === parsedUser.id ? prev : { ...prev, agentId: parsedUser.id }
+        ));
       }
     } else {
       window.location.href = '/crm';
       return;
     }
+  }, []);
 
+  // Fetch clients when filters change
+  useEffect(() => {
     fetchClients();
   }, [filters]);
 

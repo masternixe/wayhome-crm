@@ -9,6 +9,7 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon
 } from '@heroicons/react/24/outline';
+import { notifyError, notifySuccess } from '@/lib/notify';
 
 interface PropertyDocument {
   id: string;
@@ -42,59 +43,55 @@ export default function PropertyDocumentManager({
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
     setUploading(true);
     try {
       const token = localStorage.getItem('access_token');
-      
-      for (const file of Array.from(files)) {
-        // Create FormData for file upload
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', 'property_document');
-        if (propertyId) {
-          formData.append('propertyId', propertyId);
-        }
-        
-        // Upload file to server
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/document`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData,
-        });
 
-        if (response.ok) {
-          const uploadResult = await response.json();
-          
-          if (uploadResult.success) {
-            const newDocument: PropertyDocument = {
-              id: uploadResult.data.id || Date.now().toString(),
-              name: file.name,
-              url: uploadResult.data.url, // Server URL for download
-              type: file.type,
-              size: file.size,
-              uploadedAt: new Date().toISOString()
-            };
-
-            const updatedDocs = [...localDocuments, newDocument];
-            setLocalDocuments(updatedDocs);
-            onDocumentsChange(updatedDocs);
-          } else {
-            throw new Error(uploadResult.message || 'Upload failed');
-          }
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Upload failed');
-        }
+      // Create single FormData containing all files
+      const formData = new FormData();
+      Array.from(files).forEach((file) => formData.append('files', file));
+      formData.append('type', 'property_document');
+      if (propertyId) {
+        formData.append('propertyId', propertyId);
       }
-      
-      alert('✅ Dokumenti u ngarkua me sukses!');
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/documents`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Upload failed');
+      }
+
+      const uploadResult = await response.json();
+      if (!uploadResult.success || !Array.isArray(uploadResult.data)) {
+        throw new Error(uploadResult.message || 'Upload failed');
+      }
+
+      const uploadedDocs: PropertyDocument[] = uploadResult.data.map((d: any) => ({
+        id: d.id,
+        name: d.originalName || d.name || 'document',
+        url: d.url,
+        type: d.type || '',
+        size: d.size || 0,
+        uploadedAt: d.uploadedAt || new Date().toISOString(),
+      }));
+
+      const updatedDocs = [...localDocuments, ...uploadedDocs];
+      setLocalDocuments(updatedDocs);
+      onDocumentsChange(updatedDocs);
+
+      notifySuccess(`✅ U ngarkuan ${uploadedDocs.length} dokumente me sukses!`);
     } catch (error) {
       console.error('Document upload error:', error);
-      alert('❌ Gabim gjatë ngarkimit të dokumentit');
+      notifyError('❌ Gabim gjatë ngarkimit të dokumenteve');
     } finally {
       setUploading(false);
       // Reset file input
@@ -159,14 +156,14 @@ export default function PropertyDocumentManager({
         const updatedDocs = localDocuments.filter(doc => doc.id !== docId);
         setLocalDocuments(updatedDocs);
         onDocumentsChange(updatedDocs);
-        alert('✅ Dokumenti u fshi me sukses!');
+        notifySuccess('✅ Dokumenti u fshi me sukses!');
       } catch (error) {
         console.error('Error deleting document:', error);
         // Still remove from local state
         const updatedDocs = localDocuments.filter(doc => doc.id !== docId);
         setLocalDocuments(updatedDocs);
         onDocumentsChange(updatedDocs);
-        alert('✅ Dokumenti u fshi nga lista!');
+        notifySuccess('✅ Dokumenti u fshi nga lista!');
       }
     }
   };
@@ -239,7 +236,7 @@ export default function PropertyDocumentManager({
               }}
             >
               {uploading ? '⏳' : <ArrowUpTrayIcon style={{ width: '1rem', height: '1rem' }} />}
-              {uploading ? 'Duke ngarkuar...' : 'Ngarko Dokument'}
+              {uploading ? 'Duke ngarkuar...' : 'Ngarko Dokumente'}
             </button>
           </div>
         )}

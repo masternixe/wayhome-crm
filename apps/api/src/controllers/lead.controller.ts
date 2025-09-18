@@ -63,10 +63,16 @@ export class LeadController {
       
       console.log('✅ User office check passed or bypassed for SUPER_ADMIN:', authReq.user.officeId || 'N/A (SUPER_ADMIN)');
       
-      // Generate lead number
-      const whereCondition = authReq.user.officeId ? { officeId: authReq.user.officeId } : {};
-      const leadCount = await this.prisma.lead.count({ where: whereCondition });
-      const leadNumber = `L${String(leadCount + 1).padStart(6, '0')}`;
+      // Generate a collision-resistant lead number (date + random) with retries
+      const generateLeadNumber = () => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const rand = Math.floor(1000 + Math.random() * 9000); // 4 digits
+        return `L${y}${m}${d}-${rand}`;
+      };
+      let leadNumber = generateLeadNumber();
       
       // Allow creating unassigned leads (optional assignment)
       const assignedToId = data.assignedToId || null;
@@ -124,36 +130,51 @@ export class LeadController {
         }
       }
       
-      // Create lead
-      const lead = await this.prisma.lead.create({
-        data: {
-          ...data,
-          leadNumber,
-          officeId: targetOfficeId,
-          assignedToId,
-          rikontakt: data.rikontakt ? new Date(data.rikontakt) : null,
-          status: LeadStatus.NEW,
-        },
-        include: {
-          assignedTo: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
-              email: true,
-              phone: true,
+      // Create lead with retry on unique constraint
+      let lead: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          if (attempt > 0) {
+            leadNumber = generateLeadNumber();
+          }
+          lead = await this.prisma.lead.create({
+            data: {
+              ...data,
+              leadNumber,
+              officeId: targetOfficeId,
+              assignedToId,
+              rikontakt: data.rikontakt ? new Date(data.rikontakt) : null,
+              status: LeadStatus.NEW,
             },
-          },
-          office: {
-            select: {
-              id: true,
-              name: true,
-              city: true,
+            include: {
+              assignedTo: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  avatar: true,
+                  email: true,
+                  phone: true,
+                },
+              },
+              office: {
+                select: {
+                  id: true,
+                  name: true,
+                  city: true,
+                },
+              },
             },
-          },
-        },
-      });
+          });
+          break; // success
+        } catch (e: any) {
+          const isUnique = e?.code === 'P2002' && e?.meta?.target?.includes('leadNumber');
+          if (isUnique && attempt < 4) {
+            continue; // retry with new number
+          }
+          throw e;
+        }
+      }
       
       // Award points for lead creation (only for agents and managers)
       if (assignedToId) {

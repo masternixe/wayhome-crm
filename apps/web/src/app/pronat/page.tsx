@@ -16,6 +16,7 @@ interface Property {
   id: string;
   title: string;
   description: string;
+  listingType?: 'SALE' | 'RENT';
   type: string;
   city: string;
   zona: string;
@@ -62,6 +63,7 @@ export default function PronatPage() {
   const currency = useCurrency();
   const [filters, setFilters] = useState({
     q: '',
+    listingType: '',
     type: '',
     city: '',
     zona: '',
@@ -121,6 +123,7 @@ export default function PronatPage() {
   const clearFilters = () => {
     setFilters({
       q: '',
+      listingType: '',
       type: '',
       city: '',
       zona: '',
@@ -154,6 +157,22 @@ export default function PronatPage() {
       'LAND': 'Tokë'
     };
     return types[type] || type;
+  };
+
+  const getListingTypeLabel = (listingType: string) => {
+    const types: Record<string, string> = {
+      'SALE': 'Shitje',
+      'RENT': 'Qera'
+    };
+    return types[listingType] || listingType;
+  };
+
+  const getListingTypeBadge = (listingType: string) => {
+    const badges: Record<string, { bg: string, text: string, icon: string }> = {
+      'SALE': { bg: 'bg-green-100', text: 'text-green-800', icon: '💰' },
+      'RENT': { bg: 'bg-blue-100', text: 'text-blue-800', icon: '🏠' }
+    };
+    return badges[listingType] || { bg: 'bg-gray-100', text: 'text-gray-800', icon: '🏢' };
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -278,6 +297,19 @@ export default function PronatPage() {
                       {propertyTypes.map(type => (
                         <option key={type.value} value={type.value}>{type.label}</option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Qera / Shitje</label>
+                    <select
+                      value={filters.listingType}
+                      onChange={(e) => handleFilterChange('listingType', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-0"
+                    >
+                      <option value="">Të gjitha</option>
+                      <option value="SALE">Shitje</option>
+                      <option value="RENT">Qera</option>
                     </select>
                   </div>
 
@@ -422,6 +454,14 @@ export default function PronatPage() {
                       </div>
                     )}
                     
+                    {/* Listing Type Badge */}
+                    <div className="absolute top-4 left-4">
+                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getListingTypeBadge(property.listingType || 'SALE').bg} ${getListingTypeBadge(property.listingType || 'SALE').text} shadow-sm`}>
+                        <span>{getListingTypeBadge(property.listingType || 'SALE').icon}</span>
+                        {getListingTypeLabel(property.listingType || 'SALE')}
+                      </span>
+                    </div>
+
                     {/* Favorite Button */}
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -436,12 +476,6 @@ export default function PronatPage() {
                       )}
                     </motion.button>
 
-                    {/* Property Type Badge */}
-                    <div className="absolute top-4 left-4">
-                                          <span className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {getPropertyTypeLabel(property.type)}
-                    </span>
-                    </div>
 
                     {/* Featured Badge */}
                     {property.featured && (

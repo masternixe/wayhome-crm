@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
+import { drainFlashToasts } from '@/lib/notify';
 import { initializeExchangeRates } from '@/lib/currency';
 import { AuthProvider } from '@/contexts/AuthContext';
 import apiService from '@/services/apiService';
@@ -32,6 +33,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Initialize exchange rates on app startup
     initializeExchangeRates().catch(console.error);
+    // Drain any queued flash toasts after navigation
+    drainFlashToasts();
   }, []);
 
   return (

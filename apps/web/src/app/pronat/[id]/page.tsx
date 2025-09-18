@@ -16,6 +16,7 @@ interface Property {
   id: string;
   title: string;
   description: string;
+  listingType?: 'SALE' | 'RENT';
   type: string;
   city: string;
   zona: string;
@@ -51,6 +52,35 @@ interface Property {
     phone?: string;
   };
 }
+
+// Helper functions
+const getListingTypeLabel = (listingType: string) => {
+  const types: Record<string, string> = {
+    'SALE': 'Shitje',
+    'RENT': 'Qera'
+  };
+  return types[listingType] || listingType;
+};
+
+const getListingTypeBadge = (listingType: string) => {
+  const badges: Record<string, { bg: string, text: string, icon: string }> = {
+    'SALE': { bg: 'bg-green-100', text: 'text-green-800', icon: '💰' },
+    'RENT': { bg: 'bg-blue-100', text: 'text-blue-800', icon: '🏠' }
+  };
+  return badges[listingType] || { bg: 'bg-gray-100', text: 'text-gray-800', icon: '🏢' };
+};
+
+const getPropertyTypeLabel = (type: string) => {
+  const types: Record<string, string> = {
+    'APARTMENT': 'Apartament',
+    'HOUSE': 'Shtëpi',
+    'VILLA': 'Vilë',
+    'COMMERCIAL': 'Komercial',
+    'OFFICE': 'Zyrë',
+    'LAND': 'Tokë'
+  };
+  return types[type] || type;
+};
 
 export default function PropertyDetailPage({ params }: { params: { id: string } }) {
   const [property, setProperty] = useState<Property | null>(null);
@@ -295,9 +325,13 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
-                                  <span className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {getPropertyTypeLabel(property.type)}
-                </span>
+                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium text-white ${property.listingType === 'RENT' ? 'bg-blue-600' : 'bg-green-600'}`}>
+                    <span>{getListingTypeBadge(property.listingType || 'SALE').icon}</span>
+                    {getListingTypeLabel(property.listingType || 'SALE')}
+                  </span>
+                  <span className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    {getPropertyTypeLabel(property.type)}
+                  </span>
                   {property.featured && (
                     <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-sm font-medium">
                       ⭐ E zgjedhur
@@ -357,9 +391,15 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
               className="bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100"
             >
               <div className="mb-6">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                  {property.title}
-                </h1>
+                <div className="flex items-center gap-3 mb-4">
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                    {property.title}
+                  </h1>
+                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getListingTypeBadge(property.listingType || 'SALE').bg} ${getListingTypeBadge(property.listingType || 'SALE').text} shadow-sm`}>
+                    <span>{getListingTypeBadge(property.listingType || 'SALE').icon}</span>
+                    {getListingTypeLabel(property.listingType || 'SALE')}
+                  </span>
+                </div>
                 
                 <div className="flex items-center text-gray-600 mb-6">
                   <MapPinIcon className="w-5 h-5 mr-2" />
@@ -374,6 +414,15 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
               {/* Key Features */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <motion.div 
+                  whileHover={{ scale: 1.05 }}
+                  className="text-center p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors duration-200 border-2 border-blue-200"
+                >
+                  <div className="text-3xl mb-2">🏢</div>
+                  <div className="text-2xl font-bold text-blue-700">{getPropertyTypeLabel(property.type)}</div>
+                  <div className="text-sm text-gray-600">Lloji i pronës</div>
+                </motion.div>
+                
                 <motion.div 
                   whileHover={{ scale: 1.05 }}
                   className="text-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200"
