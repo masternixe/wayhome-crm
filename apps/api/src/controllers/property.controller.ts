@@ -18,6 +18,7 @@ const createPropertySchema = z.object({
   siperfaqeMin: z.number().min(10).max(10000),
   siperfaqeMax: z.number().min(10).max(10000),
   price: z.number().min(100).max(100000000),
+  priceOnRequest: z.boolean().default(false),
   currency: z.nativeEnum(Currency).default(Currency.EUR),
   ashensor: z.boolean().default(false),
   badges: z.array(z.string()).default([]),
@@ -31,6 +32,7 @@ const createPropertySchema = z.object({
   agentOwnerId: z.string().optional(),
   collaboratingAgentId: z.string().optional(),
   clientId: z.string().nullable().optional(),
+  status: z.nativeEnum(PropertyStatus).optional(),
 });
 
 const updatePropertySchema = createPropertySchema.partial();
@@ -73,6 +75,8 @@ export class PropertyController {
   create = async (req: Request, res: Response): Promise<void> => {
     try {
       const authReq = req as AuthRequest;
+      console.log('📝 Property creation request body:', JSON.stringify(req.body, null, 2));
+      
       const data = createPropertySchema.parse(req.body);
       
       // Validate siperfaqe range
@@ -84,8 +88,8 @@ export class PropertyController {
         return;
       }
       
-      // Ensure user has office assigned
-      if (!authReq.user.officeId) {
+      // Ensure user has office assigned (except for SUPER_ADMIN)
+      if (!authReq.user.officeId && authReq.user.role !== 'SUPER_ADMIN') {
         res.status(400).json({
           success: false,
           message: 'User must be assigned to an office to create properties',
@@ -133,11 +137,20 @@ export class PropertyController {
         }
       }
 
+      // For Super Admin without office, assign to first available office
+      let officeId = authReq.user.officeId;
+      if (!officeId && authReq.user.role === 'SUPER_ADMIN') {
+        const firstOffice = await this.prisma.office.findFirst();
+        if (firstOffice) {
+          officeId = firstOffice.id;
+        }
+      }
+
       // Create property
       const property = await this.prisma.property.create({
         data: {
           ...data,
-          officeId: authReq.user.officeId,
+          officeId,
           agentOwnerId: authReq.user.userId,
           status: PropertyStatus.LISTED,
         },
@@ -179,13 +192,15 @@ export class PropertyController {
         },
       });
       
-      // Award points for property listing
-      await this.pointsService.awardPoints({
-        agentId: authReq.user.userId,
-        actionType: 'PROPERTY_LISTED',
-        points: 5,
-        meta: { propertyId: property.id },
-      });
+      // Award points for property listing (only for agents and managers)
+      if (authReq.user.role === 'AGENT' || authReq.user.role === 'MANAGER') {
+        await this.pointsService.awardPoints({
+          agentId: authReq.user.userId,
+          actionType: 'PROPERTY_LISTED',
+          points: 5,
+          meta: { propertyId: property.id },
+        });
+      }
       
       res.status(201).json({
         success: true,
@@ -193,10 +208,15 @@ export class PropertyController {
         data: property,
       });
     } catch (error) {
+      console.error('❌ Property creation error:', error);
+      
       if (error instanceof z.ZodError) {
+        const validationErrors = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+        console.log('🔍 Validation errors:', validationErrors);
+        
         res.status(400).json({
           success: false,
-          message: 'Validation error',
+          message: `Validation error: ${validationErrors}`,
           errors: error.errors,
         });
         return;
@@ -226,6 +246,13 @@ export class PropertyController {
         filters.officeId = params.officeId;
       }
       
+      // Agent restriction - agents can only see their own properties
+      if (authReq.user.role === 'AGENT') {
+        filters.agentId = authReq.user.userId;
+      } else if (params.agentId) {
+        filters.agentId = params.agentId;
+      }
+      
       // Apply search filters
       if (params.q) filters.q = params.q; // Add search query support
       if (params.listingType) (filters as any).listingType = params.listingType;
@@ -242,7 +269,6 @@ export class PropertyController {
       if (params.featured !== undefined) filters.featured = params.featured;
       if (params.status) filters.status = params.status;
       if (params.badges) filters.badges = params.badges.split(',').map(b => b.trim());
-      if (params.agentId) filters.agentId = params.agentId;
       
       const options = {
         limit: params.limit,

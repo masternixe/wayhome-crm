@@ -28,23 +28,34 @@ export default function NewTransactionPage() {
     splitRatio: 0.5,
     grossAmount: '' as unknown as number | '',
     commissionAmount: '' as unknown as number | '',
-    agentSharePrimary: 0,
-    agentShareCollaborator: 0,
     currency: 'EUR',
     closeDate: '',
     contractNumber: '',
     notes: '',
   });
 
-  // Derived shares
-  useEffect(() => {
-    const gross = Number(form.grossAmount) || 0;
+  // Calculate commission splits for preview (automatic calculation)
+  const getCommissionPreview = () => {
     const commission = Number(form.commissionAmount) || 0;
-    const split = Number(form.splitRatio) || 0.5;
-    const primary = Math.round(commission * split);
-    const collab = Math.round(commission - primary);
-    setForm(prev => ({ ...prev, agentSharePrimary: primary, agentShareCollaborator: collab }));
-  }, [form.grossAmount, form.commissionAmount, form.splitRatio]);
+    if (commission <= 0) return null;
+    
+    const superAdminShare = commission * 0.5;
+    const remainingCommission = commission * 0.5;
+    
+    if (form.collaboratingAgentId) {
+      return {
+        superAdmin: superAdminShare,
+        primaryAgent: remainingCommission * 0.5,
+        collaboratingAgent: remainingCommission * 0.5,
+      };
+    } else {
+      return {
+        superAdmin: superAdminShare,
+        primaryAgent: remainingCommission,
+        collaboratingAgent: 0,
+      };
+    }
+  };
 
   // Init user
   useEffect(() => {
@@ -102,11 +113,9 @@ export default function NewTransactionPage() {
         splitRatio: Number(form.splitRatio),
         grossAmount: Number(form.grossAmount),
         commissionAmount: Number(form.commissionAmount),
-        agentSharePrimary: Number(form.agentSharePrimary),
         currency: form.currency,
       };
       if (form.collaboratingAgentId) payload.collaboratingAgentId = form.collaboratingAgentId;
-      if (form.agentShareCollaborator) payload.agentShareCollaborator = Number(form.agentShareCollaborator);
       if (form.closeDate) payload.closeDate = form.closeDate;
       if (form.contractNumber) payload.contractNumber = form.contractNumber.trim();
       if (form.notes) payload.notes = form.notes.trim();
@@ -203,20 +212,41 @@ export default function NewTransactionPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Pjesa e Agjentit Kryesor</label>
-              <input type="number" value={form.agentSharePrimary} readOnly style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6, background: '#f9fafb' }} />
+          {/* Commission Preview */}
+          {getCommissionPreview() && (
+            <div style={{ background: '#f0f9ff', border: '1px solid #0ea5e9', borderRadius: 8, padding: '1rem', marginTop: '1rem' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#0c4a6e', marginBottom: '0.75rem', margin: '0 0 0.75rem 0' }}>
+                📊 Ndarja Automatike e Komisionit
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: form.collaboratingAgentId ? '1fr 1fr 1fr' : '1fr 1fr', gap: '1rem' }}>
+                <div style={{ textAlign: 'center', padding: '0.5rem', background: 'white', borderRadius: 6, border: '1px solid #0ea5e9' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#0c4a6e', fontWeight: '500' }}>Super Admin (50%)</div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#0c4a6e' }}>
+                    €{getCommissionPreview()?.superAdmin.toFixed(2)}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '0.5rem', background: 'white', borderRadius: 6, border: '1px solid #16a34a' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: '500' }}>
+                    Agjenti Kryesor ({form.collaboratingAgentId ? '25%' : '50%'})
+                  </div>
+                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#166534' }}>
+                    €{getCommissionPreview()?.primaryAgent.toFixed(2)}
+                  </div>
+                </div>
+                {form.collaboratingAgentId && (
+                  <div style={{ textAlign: 'center', padding: '0.5rem', background: 'white', borderRadius: 6, border: '1px solid #7c3aed' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#581c87', fontWeight: '500' }}>Bashkëpunëtori (25%)</div>
+                    <div style={{ fontSize: '1rem', fontWeight: '700', color: '#581c87' }}>
+                      €{getCommissionPreview()?.collaboratingAgent.toFixed(2)}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem', textAlign: 'center' }}>
+                Komisionet llogariten automatikisht nga sistemi
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Pjesa e Bashkëpunëtorit</label>
-              <input type="number" value={form.agentShareCollaborator} readOnly style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6, background: '#f9fafb' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Raporti i Ndarjes</label>
-              <input type="number" step="0.01" min="0" max="1" value={form.splitRatio} onChange={e => setForm(prev => ({ ...prev, splitRatio: Number(e.target.value) }))} style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: 6 }} />
-            </div>
-          </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
             <div>

@@ -80,6 +80,50 @@ export default function AgentEditPage({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('❌ Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('❌ Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const result = await response.json();
+      if (result.success && result.data?.url) {
+        setForm({ ...form, avatar: result.data.url });
+        alert('✅ Avatar uploaded successfully!');
+      } else {
+        throw new Error(result.message || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      alert(`❌ Failed to upload avatar: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -185,8 +229,54 @@ export default function AgentEditPage({ params }: { params: { id: string } }) {
           </div>
 
           <div style={{ marginTop: '1rem' }}>
-            <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>Avatar URL</label>
-            <input type="url" value={form.avatar || ''} onChange={(e) => setForm({ ...form, avatar: e.target.value })} placeholder="https://..." style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem' }} />
+            <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>Avatar</label>
+            
+            {/* Current Avatar Preview */}
+            {form.avatar && (
+              <div style={{ marginBottom: '1rem' }}>
+                <img 
+                  src={form.avatar} 
+                  alt="Current Avatar" 
+                  style={{ 
+                    width: '80px', 
+                    height: '80px', 
+                    borderRadius: '50%', 
+                    objectFit: 'cover',
+                    border: '2px solid #e5e7eb'
+                  }} 
+                />
+              </div>
+            )}
+            
+            {/* File Upload */}
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              style={{ 
+                width: '100%', 
+                padding: '0.75rem', 
+                border: '1px solid #d1d5db', 
+                borderRadius: '0.5rem', 
+                fontSize: '0.875rem',
+                marginBottom: '0.5rem'
+              }} 
+            />
+            
+            {/* Manual URL Input (fallback) */}
+            <input 
+              type="url" 
+              value={form.avatar || ''} 
+              onChange={(e) => setForm({ ...form, avatar: e.target.value })} 
+              placeholder="Or enter image URL manually..." 
+              style={{ 
+                width: '100%', 
+                padding: '0.75rem', 
+                border: '1px solid #d1d5db', 
+                borderRadius: '0.5rem', 
+                fontSize: '0.875rem' 
+              }} 
+            />
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>

@@ -15,7 +15,8 @@ import {
   ArrowPathIcon,
   BuildingOfficeIcon,
   StarIcon,
-  XMarkIcon
+  XMarkIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import CRMHeader from '@/components/crm/CRMHeader';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -82,7 +83,8 @@ function AgentsContent() {
     role: 'AGENT',
     officeId: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    avatar: ''
   });
 
   useEffect(() => {
@@ -229,15 +231,90 @@ function AgentsContent() {
 
   const fetchOffices = async () => {
     try {
-      // For now, we'll use a placeholder. In real implementation, you'd have an offices endpoint
-      const mockOffices: Office[] = [
-        { id: '1', name: 'Tirana Center', city: 'Tirana' },
-        { id: '2', name: 'Durrës Office', city: 'Durrës' },
-        { id: '3', name: 'Vlorë Branch', city: 'Vlorë' }
-      ];
-      setOffices(mockOffices);
+      const response = await apiService.get('/offices');
+      if (response.success && Array.isArray(response.data)) {
+        setOffices(response.data);
+      } else {
+        console.warn('Failed to fetch offices from API');
+        setOffices([]);
+      }
     } catch (error) {
       console.error('Failed to fetch offices:', error);
+      setOffices([]);
+    }
+  };
+
+  const handleDeleteAgent = async (agentId: string, agentName: string) => {
+    if (!window.confirm(`A jeni i sigurt që doni të fshini agjentin "${agentName}"?\n\nKjo veprim nuk mund të zhbëhet!`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${agentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`✅ ${result.message}`);
+        // Refresh the agents list
+        fetchAgents();
+      } else {
+        const errorData = await response.json();
+        alert(`❌ ${errorData.message || 'Failed to delete agent'}`);
+      }
+    } catch (error) {
+      console.error('Delete agent error:', error);
+      alert(`❌ Failed to delete agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('❌ Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('❌ Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const result = await response.json();
+      if (result.success && result.data?.url) {
+        setNewAgent({ ...newAgent, avatar: result.data.url });
+        alert('✅ Avatar uploaded successfully!');
+      } else {
+        throw new Error(result.message || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      alert(`❌ Failed to upload avatar: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -275,7 +352,8 @@ function AgentsContent() {
         phone: newAgent.phone || undefined,
         role: newAgent.role,
         officeId: newAgent.officeId || undefined,
-        password: newAgent.password
+        password: newAgent.password,
+        avatar: newAgent.avatar || undefined
       };
 
       const response = await apiService.post('/users', agentData);
@@ -291,7 +369,8 @@ function AgentsContent() {
           role: 'AGENT',
           officeId: '',
           password: '',
-          confirmPassword: ''
+          confirmPassword: '',
+          avatar: ''
         });
         fetchAgents();
       } else {
@@ -317,8 +396,9 @@ function AgentsContent() {
   const canCreateAgents = user?.role === 'SUPER_ADMIN' || user?.role === 'OFFICE_ADMIN';
   const canViewAllAgents = user?.role === 'SUPER_ADMIN' || user?.role === 'OFFICE_ADMIN' || user?.role === 'MANAGER';
 
-  // Filter agents based on user role
-  const filteredAgents = canViewAllAgents ? agents : agents.filter(agent => agent.id === user?.id);
+  // Filter agents based on user role and status (hide inactive/deleted users)
+  const activeAgents = agents.filter(agent => agent.status === 'ACTIVE');
+  const filteredAgents = canViewAllAgents ? activeAgents : activeAgents.filter(agent => agent.id === user?.id);
 
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', margin: 0, padding: 0, background: '#f8fafc', minHeight: '100vh' }}>
@@ -703,6 +783,30 @@ function AgentsContent() {
                               <PencilIcon style={{ width: '0.875rem', height: '0.875rem', color: '#2563eb' }} />
                             </Link>
                           )}
+
+                          {/* Delete Button - Only for admins and not for yourself */}
+                          {canCreateAgents && agent.id !== user?.id && (
+                            <button
+                              onClick={() => handleDeleteAgent(agent.id, `${agent.firstName} ${agent.lastName}`)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '1.75rem',
+                                height: '1.75rem',
+                                background: '#fee2e2',
+                                borderRadius: '0.375rem',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s'
+                              }}
+                              title="Fshi"
+                              onMouseOver={(e) => e.currentTarget.style.background = '#fecaca'}
+                              onMouseOut={(e) => e.currentTarget.style.background = '#fee2e2'}
+                            >
+                              <TrashIcon style={{ width: '0.875rem', height: '0.875rem', color: '#dc2626' }} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -863,6 +967,60 @@ function AgentsContent() {
                     style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem' }}
                   />
                 </div>
+              </div>
+
+              {/* Avatar Upload */}
+              <div style={{ marginTop: '1rem' }}>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>
+                  Avatar
+                </label>
+                
+                {/* Current Avatar Preview */}
+                {newAgent.avatar && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <img 
+                      src={newAgent.avatar} 
+                      alt="Avatar Preview" 
+                      style={{ 
+                        width: '80px', 
+                        height: '80px', 
+                        borderRadius: '50%', 
+                        objectFit: 'cover',
+                        border: '2px solid #e5e7eb'
+                      }} 
+                    />
+                  </div>
+                )}
+                
+                {/* File Upload */}
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.75rem', 
+                    border: '1px solid #d1d5db', 
+                    borderRadius: '0.5rem', 
+                    fontSize: '0.875rem',
+                    marginBottom: '0.5rem'
+                  }} 
+                />
+                
+                {/* Manual URL Input (fallback) */}
+                <input 
+                  type="url" 
+                  value={newAgent.avatar} 
+                  onChange={(e) => setNewAgent(prev => ({ ...prev, avatar: e.target.value }))} 
+                  placeholder="Or enter image URL manually..." 
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.75rem', 
+                    border: '1px solid #d1d5db', 
+                    borderRadius: '0.5rem', 
+                    fontSize: '0.875rem' 
+                  }} 
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>

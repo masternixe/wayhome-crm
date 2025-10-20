@@ -31,6 +31,8 @@ enum PropertyType {
   APARTMENT
   HOUSE
   VILLA
+  DUPLEX
+  AMBIENT
   LAND
   COMMERCIAL
   OFFICE
@@ -222,6 +224,7 @@ model Property {
   siperfaqeMin          Float
   siperfaqeMax          Float
   price                 Float
+  priceOnRequest        Boolean        @default(false)
   currency              Currency       @default(EUR)
   ashensor              Boolean        @default(false)
   status                PropertyStatus @default(LISTED)
@@ -360,6 +363,7 @@ model Transaction {
   // Financial details
   grossAmount           Float
   commissionAmount      Float
+  superAdminShare       Float             // Always 50% of commission
   agentSharePrimary     Float
   agentShareCollaborator Float?
   currency              Currency          @default(EUR)
@@ -635,6 +639,16 @@ model SystemSettings {
   lastUpdatedBy String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([key])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([key])
 }

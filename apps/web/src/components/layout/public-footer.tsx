@@ -25,7 +25,7 @@ const footerLinks = {
 const socialLinks = [
   {
     name: 'Facebook',
-    href: 'https://facebook.com/wayhome',
+    href: 'https://www.facebook.com/wayhome.al/',
     icon: (props: any) => (
       <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
         <path
@@ -38,25 +38,12 @@ const socialLinks = [
   },
   {
     name: 'Instagram',
-    href: 'https://instagram.com/wayhome',
+    href: 'https://www.instagram.com/wayhome.al/',
     icon: (props: any) => (
       <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
         <path
           fillRule="evenodd"
           d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.621 5.367 11.988 11.988 11.988s11.987-5.367 11.987-11.988C24.004 5.367 18.637.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.33-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.297-3.33c.882-.807 2.033-1.297 3.33-1.297s2.448.49 3.33 1.297c.807.882 1.297 2.033 1.297 3.33s-.49 2.448-1.297 3.33c-.882.807-2.033 1.297-3.33 1.297zm7.983-9.75a.796.796 0 01-.796-.796.796.796 0 01.796-.795.796.796 0 01.796.795.796.796 0 01-.796.796zM15.017 12.447c0 1.66-1.347 3.006-3.006 3.006s-3.006-1.347-3.006-3.006 1.347-3.006 3.006-3.006 3.006 1.347 3.006 3.006z"
-          clipRule="evenodd"
-        />
-      </svg>
-    ),
-  },
-  {
-    name: 'LinkedIn',
-    href: 'https://linkedin.com/company/wayhome',
-    icon: (props: any) => (
-      <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
-        <path
-          fillRule="evenodd"
-          d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
           clipRule="evenodd"
         />
       </svg>
@@ -87,15 +74,19 @@ export function PublicFooter() {
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <MapPinIcon className="h-5 w-5 text-orange-400 flex-shrink-0" />
-                  <span className="text-gray-300">Tirana, Shqipëri</span>
+                  <span className="text-gray-300">Rruga, Kristo Luarasi ,Lake View Kulla D</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <PhoneIcon className="h-5 w-5 text-orange-400 flex-shrink-0" />
-                  <span className="text-gray-300">+355 4 2234567</span>
+                  <a href="tel:+35568504201" className="text-gray-300 hover:text-orange-400 transition-colors">
+                    +355 68 504 0201
+                  </a>
                 </div>
                 <div className="flex items-center space-x-3">
                   <EnvelopeIcon className="h-5 w-5 text-orange-400 flex-shrink-0" />
-                  <span className="text-gray-300">info@wayhome.com</span>
+                  <a href="mailto:info@wayhome.al" className="text-gray-300 hover:text-orange-400 transition-colors">
+                    info@wayhome.al
+                  </a>
                 </div>
               </div>
             </div>

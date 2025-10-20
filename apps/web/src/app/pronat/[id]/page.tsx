@@ -2,26 +2,27 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { ArrowLeftIcon, MapPinIcon, HomeIcon, CurrencyEuroIcon, PhoneIcon, EnvelopeIcon, ShareIcon, HeartIcon as HeartOutline, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, MapPinIcon, HomeIcon, CurrencyEuroIcon, PhoneIcon, EnvelopeIcon, ShareIcon, HeartIcon as HeartOutline, ChevronLeftIcon, ChevronRightIcon, XMarkIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid, StarIcon } from '@heroicons/react/24/solid';
 import { extractIdFromSlug, generatePropertySlug } from '@/lib/utils';
 import { useCurrency } from '@/hooks/useCurrency';
 import { formatPriceWithPreference } from '@/lib/currency';
 import { PublicHeader } from '@/components/layout/public-header';
 import { PublicFooter } from '@/components/layout/public-footer';
-import Image from 'next/image';
 
 interface Property {
   id: string;
   title: string;
   description: string;
-  listingType?: 'SALE' | 'RENT';
+  listingType: 'SALE' | 'RENT';
   type: string;
   city: string;
   zona: string;
   address: string;
   price: number;
+  priceOnRequest?: boolean;
   currency: string;
   bedrooms: number;
   bathrooms: number;
@@ -36,7 +37,16 @@ interface Property {
   parkingSpaces?: number;
   balcony: boolean;
   garden: boolean;
-  agent?: {
+  virtualTourUrl?: string;
+  agentOwner?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+    phone?: string;
+    email?: string;
+  };
+  collaboratingAgent?: {
     id: string;
     firstName: string;
     lastName: string;
@@ -75,6 +85,8 @@ const getPropertyTypeLabel = (type: string) => {
     'APARTMENT': 'Apartament',
     'HOUSE': 'Shtëpi',
     'VILLA': 'Vilë',
+    'DUPLEX': 'Dupleks',
+    'AMBIENT': 'Ambient',
     'COMMERCIAL': 'Komercial',
     'OFFICE': 'Zyrë',
     'LAND': 'Tokë'
@@ -117,6 +129,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
       const data = await response.json();
       
       if (data.success && data.data) {
+        console.log('🏠 Property data received:', data.data);
         setProperty(data.data);
       } else {
         throw new Error('Property not found');
@@ -260,6 +273,38 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           </Link>
         </motion.div>
 
+        {/* Status Alert */}
+        {(property.status === 'SOLD' || property.status === 'RENTED' || property.status === 'UNDER_OFFER') && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className={`p-6 rounded-2xl mb-8 text-center ${
+              property.status === 'SOLD' ? 'bg-red-50 border-2 border-red-200' :
+              property.status === 'RENTED' ? 'bg-blue-50 border-2 border-blue-200' :
+              'bg-orange-50 border-2 border-orange-200'
+            }`}
+          >
+            <div className="text-4xl mb-4">
+              {property.status === 'SOLD' ? '🎉' : property.status === 'RENTED' ? '🏠' : '💰'}
+            </div>
+            <h2 className={`text-2xl font-bold mb-2 ${
+              property.status === 'SOLD' ? 'text-red-700' :
+              property.status === 'RENTED' ? 'text-blue-700' :
+              'text-orange-700'
+            }`}>
+              {property.status === 'SOLD' ? 'Kjo Pronë është E SHITUR!' :
+               property.status === 'RENTED' ? 'Kjo Pronë është E DHËNË ME QIRA!' :
+               'Kjo Pronë është NËN OFERTË!'}
+            </h2>
+            <p className="text-gray-600">
+              {property.status === 'SOLD' ? 'Prona është shitur, por mund të shihni detajet për referim.' :
+               property.status === 'RENTED' ? 'Prona është dhënë me qira, por mund të shihni detajet për referim.' :
+               'Prona është nën ofertë, por ende mund të kontaktoni agjentin.'}
+            </p>
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -337,6 +382,21 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                       ⭐ E zgjedhur
                     </span>
                   )}
+                  {property.status === 'SOLD' && (
+                    <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      ✅ E SHITUR
+                    </span>
+                  )}
+                  {property.status === 'RENTED' && (
+                    <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      🏠 E DHËNË ME QIRA
+                    </span>
+                  )}
+                  {property.status === 'UNDER_OFFER' && (
+                    <span className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      💰 NËN OFERTË
+                    </span>
+                  )}
                   {property.badges.map((badge, index) => (
                     <span key={index} className="bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
                       {badge}
@@ -386,7 +446,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             <motion.div
               ref={ref}
               initial={{ opacity: 0, y: 30 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               className="bg-white rounded-2xl p-6 md:p-8 shadow-xl border border-gray-100"
             >
@@ -401,14 +461,19 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   </span>
                 </div>
                 
-                <div className="flex items-center text-gray-600 mb-6">
-                  <MapPinIcon className="w-5 h-5 mr-2" />
-                  <span className="text-lg">{property.address}</span>
+                <div className="space-y-2 mb-6">
+                  <div className="flex items-center text-gray-600">
+                    <MapPinIcon className="w-5 h-5 mr-2" />
+                    <span className="text-lg">{property.address}</span>
+                  </div>
+                  <div className="flex items-center text-gray-500 text-sm ml-7">
+                    📍 {property.city} • {property.zona}
+                  </div>
                 </div>
 
-                              <div className="flex items-center text-4xl md:text-5xl font-bold text-orange-600 mb-8">
+              <div className="flex items-center text-4xl md:text-5xl font-bold text-orange-600 mb-8">
                 <CurrencyEuroIcon className="w-8 h-8 mr-2" />
-                {formatPrice(property.price, property.currency)}
+                {property.priceOnRequest ? 'Çmimi sipas kërkesës' : formatPriceWithPreference(property.price, property.currency as 'EUR' | 'ALL', currency)}
               </div>
               </div>
 
@@ -501,12 +566,120 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 </div>
               </div>
 
+              {/* Property Information Grid */}
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Informacione të Detajuara</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Lloji i Listimit:</span>
+                      <span className="font-semibold text-gray-900">
+                        {property.listingType === 'SALE' ? 'Për Shitje' : 'Për Qira'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Qyteti:</span>
+                      <span className="font-semibold text-gray-900">{property.city}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Zona:</span>
+                      <span className="font-semibold text-gray-900">{property.zona}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Sipërfaqja:</span>
+                      <span className="font-semibold text-gray-900">
+                        {property.siperfaqeMin === property.siperfaqeMax 
+                          ? `${property.siperfaqeMin} m²`
+                          : `${property.siperfaqeMin} - ${property.siperfaqeMax} m²`
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Dhoma Gjumi:</span>
+                      <span className="font-semibold text-gray-900">{property.bedrooms}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Banjo:</span>
+                      <span className="font-semibold text-gray-900">{property.bathrooms}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {property.yearBuilt && (
+                      <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span className="text-gray-600">Viti i Ndërtimit:</span>
+                        <span className="font-semibold text-gray-900">{property.yearBuilt}</span>
+                      </div>
+                    )}
+                    {property.parkingSpaces && (
+                      <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                        <span className="text-gray-600">Vende Parkimi:</span>
+                        <span className="font-semibold text-gray-900">{property.parkingSpaces}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Ashensor:</span>
+                      <span className="font-semibold text-gray-900">
+                        {property.ashensor ? '✅ Po' : '❌ Jo'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Balkon:</span>
+                      <span className="font-semibold text-gray-900">
+                        {property.balcony ? '✅ Po' : '❌ Jo'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Kopsht:</span>
+                      <span className="font-semibold text-gray-900">
+                        {property.garden ? '✅ Po' : '❌ Jo'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Statusi:</span>
+                      <span className="font-semibold text-green-600">
+                        {property.status === 'LISTED' ? 'Në Listim' : property.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Virtual Tour */}
+              {property.virtualTourUrl && (
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Tur Virtual</h3>
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+                    <div className="flex items-center gap-4">
+                      <div className="text-4xl">🏠</div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">Shiko Turin Virtual</h4>
+                        <p className="text-gray-600 mb-4">Eksploro pronën nga shtëpia jote me turin tonë virtual 360°</p>
+                        <motion.a
+                          href={property.virtualTourUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200"
+                        >
+                          🎥 Hap Turin Virtual
+                          <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                        </motion.a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Description */}
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Përshkrimi</h3>
-                <p className="text-gray-600 leading-relaxed text-lg">
-                  {property.description}
-                </p>
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-line">
+                    {property.description || 'Nuk ka përshkrim të disponueshëm për këtë pronë.'}
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -514,7 +687,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Agent Card */}
-            {property.agent && (
+            {property.agentOwner && (
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -525,12 +698,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                    {property.agent.firstName[0]}{property.agent.lastName[0]}
+                    {property.agentOwner.firstName[0]}{property.agentOwner.lastName[0]}
                   </div>
                   
                   <div>
                     <h4 className="font-bold text-gray-900 text-lg">
-                      {property.agent.firstName} {property.agent.lastName}
+                      {property.agentOwner.firstName} {property.agentOwner.lastName}
                     </h4>
                     <p className="text-gray-600">Agjent i Licencuar</p>
                   </div>
@@ -545,17 +718,17 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
 
                 <div className="space-y-3">
                   <motion.a
-                    href={`tel:${property.agent.phone}`}
+                    href={`tel:${property.agentOwner.phone}`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="flex items-center justify-center gap-2 bg-orange-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-orange-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
                   >
                     <PhoneIcon className="w-5 h-5" />
-                    {property.agent.phone}
+                    {property.agentOwner.phone}
                   </motion.a>
                   
                   <motion.a
-                    href={`mailto:${property.agent.email}`}
+                    href={`mailto:${property.agentOwner.email}`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 border border-gray-200"
@@ -563,6 +736,57 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                     <EnvelopeIcon className="w-5 h-5" />
                     Dërgo Email
                   </motion.a>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Collaborating Agent Card */}
+            {property.collaboratingAgent && (
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100"
+              >
+                <h3 className="text-xl font-bold text-gray-900 mb-6">Agjenti Bashkëpunues</h3>
+                
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                    {property.collaboratingAgent.firstName[0]}{property.collaboratingAgent.lastName[0]}
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-bold text-gray-900 text-lg">
+                      {property.collaboratingAgent.firstName} {property.collaboratingAgent.lastName}
+                    </h4>
+                    <p className="text-gray-600">Agjent Bashkëpunues</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {property.collaboratingAgent.phone && (
+                    <motion.a
+                      href={`tel:${property.collaboratingAgent.phone}`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center justify-center gap-2 bg-green-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-green-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+                    >
+                      <PhoneIcon className="w-5 h-5" />
+                      {property.collaboratingAgent.phone}
+                    </motion.a>
+                  )}
+                  
+                  {property.collaboratingAgent.email && (
+                    <motion.a
+                      href={`mailto:${property.collaboratingAgent.email}`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 px-4 rounded-xl font-semibold hover:bg-gray-200 transition-colors duration-200 border border-gray-200"
+                    >
+                      <EnvelopeIcon className="w-5 h-5" />
+                      Dërgo Email
+                    </motion.a>
+                  )}
                 </div>
               </motion.div>
             )}

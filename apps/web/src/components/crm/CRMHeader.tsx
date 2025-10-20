@@ -50,7 +50,7 @@ export default function CRMHeader({ currentPage, user: propUser }: CRMHeaderProp
   const navItems = [
     { href: '/crm/dashboard', label: 'Dashboard', key: 'dashboard' },
     { href: '/crm/properties', label: 'Pronat', key: 'properties' },
-    { href: '/crm/clients', label: 'Klientët', key: 'clients' },
+    { href: '/crm/clients', label: 'Pronarët', key: 'clients' },
     { href: '/crm/agents', label: 'Agjentët', key: 'agents' },
   ];
 

@@ -22,6 +22,7 @@ interface Property {
   zona: string;
   address: string;
   price: number;
+  priceOnRequest?: boolean;
   currency: string;
   bedrooms: number;
   bathrooms: number;
@@ -50,6 +51,8 @@ const propertyTypes = [
   { value: 'APARTMENT', label: 'Apartament' },
   { value: 'HOUSE', label: 'Shtëpi' },
   { value: 'VILLA', label: 'Vilë' },
+  { value: 'DUPLEX', label: 'Dupleks' },
+  { value: 'AMBIENT', label: 'Ambient' },
   { value: 'COMMERCIAL', label: 'Komerciale' },
   { value: 'OFFICE', label: 'Zyrë' },
 ];
@@ -85,8 +88,7 @@ export default function PronatPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      // Always add status=LISTED for public properties
-      params.append('status', 'LISTED');
+      // Show all properties regardless of status
       
       Object.entries(filters).forEach(([key, value]) => {
         if (value && value !== '' && value !== false) {
@@ -101,11 +103,12 @@ export default function PronatPage() {
       }
       
       const data = await response.json();
+      console.log('🔍 API Response:', data);
       
       if (data.success && data.data && Array.isArray(data.data)) {
         setProperties(data.data);
       } else {
-        console.warn('No properties found or invalid response format');
+        console.warn('No properties found or invalid response format:', data);
         setProperties([]);
       }
     } catch (error) {
@@ -432,7 +435,7 @@ export default function PronatPage() {
               animate={isInView ? "visible" : "hidden"}
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              {properties.map((property, index) => (
+              {Array.isArray(properties) && properties.map((property, index) => (
                 <motion.div
                   key={property.id}
                   variants={itemVariants}
@@ -542,18 +545,35 @@ export default function PronatPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-2xl font-bold text-orange-600">
                         <CurrencyEuroIcon className="w-6 h-6 mr-1" />
-                        {formatPrice(property.price, property.currency)}
+                        {property.priceOnRequest ? 'Çmimi sipas kërkesës' : formatPrice(property.price, property.currency)}
                       </div>
                       
-                      <Link href={`/pronat/${generatePropertySlug(property.id, property.title)}`}>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-orange-700 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                        >
-                          Detajet →
-                        </motion.button>
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        {property.status === 'SOLD' && (
+                          <span className="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
+                            ✅ E SHITUR
+                          </span>
+                        )}
+                        {property.status === 'RENTED' && (
+                          <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
+                            🏠 E DHËNË ME QIRA
+                          </span>
+                        )}
+                        {property.status === 'UNDER_OFFER' && (
+                          <span className="bg-orange-600 text-white px-2 py-1 rounded text-xs font-bold">
+                            💰 NËN OFERTË
+                          </span>
+                        )}
+                        <Link href={`/pronat/${generatePropertySlug(property.id, property.title)}`}>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-orange-700 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                          >
+                            Detajet →
+                          </motion.button>
+                        </Link>
+                      </div>
                     </div>
 
                     {/* Agent Info */}

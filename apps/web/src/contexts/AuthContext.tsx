@@ -296,18 +296,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [user, refreshToken]);
 
-  // Handle window focus (check session when user returns)
-  useEffect(() => {
-    const handleFocus = () => {
-      if (user) {
-        console.log('👀 Window focused, checking session...');
-        checkAuth();
-      }
-    };
+  // Handle window focus (check session when user returns) - DISABLED
+  // useEffect(() => {
+  //   const handleFocus = () => {
+  //     if (user) {
+  //       console.log('👀 Window focused, checking session...');
+  //       checkAuth();
+  //     }
+  //   };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [user, checkAuth]);
+  //   window.addEventListener('focus', handleFocus);
+  //   return () => window.removeEventListener('focus', handleFocus);
+  // }, [user, checkAuth]);
 
   const value: AuthContextType = {
     user,

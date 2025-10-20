@@ -139,7 +139,7 @@ export default function ClientAssignmentModal({
         }}>
           <div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-              Cakto Klient për Pronën
+              Cakto Pronar për Pronën
             </h2>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.5rem 0 0 0' }}>
               {propertyTitle}
@@ -169,7 +169,7 @@ export default function ClientAssignmentModal({
             borderBottom: '1px solid #e5e7eb'
           }}>
             <div style={{ fontSize: '0.875rem', fontWeight: '500', color: '#1f2937', marginBottom: '0.5rem' }}>
-              Klienti Aktual:
+              Pronari Aktual:
             </div>
             <div style={{ 
               display: 'flex', 
@@ -215,7 +215,7 @@ export default function ClientAssignmentModal({
                   fontSize: '0.75rem'
                 }}
               >
-                Hiq Klientin
+                Hiq Pronarin
               </button>
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function ClientAssignmentModal({
                 }}
               >
                 <PlusIcon style={{ width: '1rem', height: '1rem' }} />
-                Krijo Klient të Ri
+                Krijo Pronar të Ri
               </button>
             </div>
           ) : (
@@ -406,7 +406,7 @@ export default function ClientAssignmentModal({
               fontSize: '0.875rem'
             }}
           >
-            {currentClient ? 'Ndrysho Klientin' : 'Cakto Klientin'}
+            {currentClient ? 'Ndrysho Pronarin' : 'Cakto Pronarin'}
           </button>
         </div>
       </div>

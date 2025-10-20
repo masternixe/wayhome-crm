@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { MapPinIcon, CurrencyEuroIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRef } from 'react';
+import { PriceDisplayLarge } from '@/components/ui/price-display';
+import { generatePropertySlug } from '@/lib/utils';
 
 interface Property {
   id: string;
@@ -15,6 +16,7 @@ interface Property {
   description?: string;
   listingType?: 'SALE' | 'RENT';
   price: number;
+  priceOnRequest?: boolean;
   currency: string;
   type: string;
   city: string;
@@ -44,13 +46,14 @@ export function FeaturedProperties() {
   const fetchAllProperties = async () => {
     try {
       // Fetch featured properties
-      const featuredResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/properties?featured=true&limit=6&status=LISTED`);
+      const featuredResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/properties?featured=true&limit=6`);
       
       // Fetch regular properties (non-featured)
-      const regularResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/properties?featured=false&limit=6&status=LISTED`);
+      const regularResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/properties?featured=false&limit=6`);
       
       if (featuredResponse.ok) {
         const featuredData = await featuredResponse.json();
+        // console.log('🏠 HOMEPAGE API RESPONSE - First property:', featuredData.data?.[0]);
         if (featuredData.success && featuredData.data && Array.isArray(featuredData.data)) {
           setFeaturedProperties(featuredData.data);
         }
@@ -110,14 +113,7 @@ export function FeaturedProperties() {
     return badges[listingType] || { bg: 'bg-gray-100', text: 'text-gray-800', icon: '🏢' };
   };
 
-  const formatPrice = (price: number, currency: string) => {
-    if (currency === 'EUR') {
-      return `€${price.toLocaleString()}`;
-    } else if (currency === 'ALL') {
-      return `${price.toLocaleString()} ALL`;
-    }
-    return `${price.toLocaleString()} ${currency}`;
-  };
+  // Removed formatPrice - using PriceDisplay component instead
 
 
 
@@ -274,10 +270,14 @@ export function FeaturedProperties() {
 
                     {/* Price */}
                     <div className="mb-4">
-                      <div className="text-2xl font-bold text-orange-600 flex items-center gap-1">
-                        <CurrencyEuroIcon className="w-6 h-6" />
-                        {formatPrice(property.price, property.currency)}
-                      </div>
+                      {/* {console.log('💰 Price display props:', { price: property.price, priceOnRequest: property.priceOnRequest, title: property.title })} */}
+                      <PriceDisplayLarge 
+                        price={property.price} 
+                        priceOnRequest={property.priceOnRequest}
+                        showIcon={true}
+                        IconComponent={CurrencyEuroIcon}
+                        className="flex items-center gap-1"
+                      />
                     </div>
 
                     {/* Property Features */}
@@ -396,11 +396,23 @@ export function FeaturedProperties() {
             {/* Featured Properties Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredProperties.map((property) => (
-                <Link href={`/pronat/${property.id}`} key={property.id}>
+                <Link href={`/pronat/${generatePropertySlug(property.id, property.title)}`} key={property.id}>
                   <div className="group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 border-orange-100 hover:border-orange-300 relative">
-                    {/* Premium Badge on Card */}
-                    <div className="absolute top-4 right-4 z-20 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                      ⭐ PREMIUM
+                    {/* Status Badges */}
+                    <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+                      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                        ⭐ PREMIUM
+                      </div>
+                      {property.status === 'SOLD' && (
+                        <div className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                          ✅ E SHITUR
+                        </div>
+                      )}
+                      {property.status === 'RENTED' && (
+                        <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                          🏠 E DHËNË ME QIRA
+                        </div>
+                      )}
                     </div>
 
                     {/* Property Image/Header */}
@@ -473,10 +485,13 @@ export function FeaturedProperties() {
 
                       {/* Price */}
                       <div className="mb-6">
-                        <div className="text-3xl font-bold text-orange-600 flex items-center gap-2">
-                          <CurrencyEuroIcon className="w-7 h-7" />
-                          {formatPrice(property.price, property.currency)}
-                        </div>
+                        <PriceDisplayLarge 
+                          price={property.price} 
+                          priceOnRequest={property.priceOnRequest}
+                          showIcon={true}
+                          IconComponent={CurrencyEuroIcon}
+                          className="text-3xl font-bold text-orange-600 flex items-center gap-2"
+                        />
                       </div>
 
                       {/* Property Features */}
@@ -595,7 +610,7 @@ export function FeaturedProperties() {
             {/* Regular Properties Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {regularProperties.map((property) => (
-                <Link href={`/pronat/${property.id}`} key={property.id}>
+                <Link href={`/pronat/${generatePropertySlug(property.id, property.title)}`} key={property.id}>
                   <div className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-blue-200">
                     {/* Property Image/Header */}
                     <div className="h-48 relative overflow-hidden">
@@ -618,11 +633,26 @@ export function FeaturedProperties() {
                       )}
                       
                       {/* Listing Type Badge */}
-                      <div className="absolute top-4 left-4">
+                      <div className="absolute top-4 left-4 flex flex-col gap-2">
                         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getListingTypeBadge(property.listingType || 'SALE').bg} ${getListingTypeBadge(property.listingType || 'SALE').text} shadow-sm backdrop-blur-sm`}>
                           <span>{getListingTypeBadge(property.listingType || 'SALE').icon}</span>
                           {getListingTypeLabel(property.listingType || 'SALE')}
                         </span>
+                        {property.status === 'SOLD' && (
+                          <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                            ✅ E SHITUR
+                          </span>
+                        )}
+                        {property.status === 'RENTED' && (
+                          <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                            🏠 E DHËNË ME QIRA
+                          </span>
+                        )}
+                        {property.status === 'UNDER_OFFER' && (
+                          <span className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                            💰 NËN OFERTË
+                          </span>
+                        )}
                       </div>
 
                       {/* Property Type Badge */}
@@ -664,10 +694,13 @@ export function FeaturedProperties() {
 
                       {/* Price */}
                       <div className="mb-4">
-                        <div className="text-2xl font-bold text-blue-600 flex items-center gap-1">
-                          <CurrencyEuroIcon className="w-6 h-6" />
-                          {formatPrice(property.price, property.currency)}
-                        </div>
+                        <PriceDisplayLarge 
+                          price={property.price} 
+                          priceOnRequest={property.priceOnRequest}
+                          showIcon={true}
+                          IconComponent={CurrencyEuroIcon}
+                          className="text-2xl font-bold text-blue-600 flex items-center gap-1"
+                        />
                       </div>
 
                       {/* Property Features */}
