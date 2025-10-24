@@ -12,8 +12,6 @@ const createTransactionSchema = z.object({
   splitRatio: z.number().min(0).max(1).default(0.5),
   grossAmount: z.number().positive(),
   commissionAmount: z.number().positive(),
-  agentSharePrimary: z.number().positive(),
-  agentShareCollaborator: z.number().optional(),
   currency: z.enum(['EUR', 'ALL']).default('EUR'),
   closeDate: z.string().optional(),
   contractNumber: z.string().optional(),
@@ -409,12 +407,34 @@ export class TransactionController {
         }
       }
 
+      // Calculate commission splits based on new structure
+      // Super Admin always gets 50% of commission
+      const superAdminShare = data.commissionAmount * 0.5;
+      
+      // Remaining 50% is split between agents
+      const remainingCommission = data.commissionAmount * 0.5;
+      
+      let agentSharePrimary: number;
+      let agentShareCollaborator: number | null = null;
+      
+      if (data.collaboratingAgentId) {
+        // If there's a collaborating agent, split the remaining 50% equally (25% each)
+        agentSharePrimary = remainingCommission * 0.5; // 25% of total
+        agentShareCollaborator = remainingCommission * 0.5; // 25% of total
+      } else {
+        // If no collaborating agent, primary agent gets all remaining 50%
+        agentSharePrimary = remainingCommission; // 50% of total
+      }
+
       const transaction = await this.prisma.transaction.create({
         data: {
           ...data,
           officeId: user.officeId,
           closeDate: data.closeDate ? new Date(data.closeDate) : null,
           status: 'OPEN',
+          superAdminShare,
+          agentSharePrimary,
+          agentShareCollaborator,
         },
         include: {
           property: {

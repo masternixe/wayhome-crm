@@ -19,9 +19,9 @@ import {
   ArrowPathIcon,
   TableCellsIcon,
   Squares2X2Icon
-} from '@heroicons/react/24/outline';
-import { useCurrency } from '@/hooks/useCurrency';
-import { formatPriceWithPreference } from '@/lib/currency';
+} from '@heroicons/react/20/solid';
+// Removed useCurrency import - now using PriceDisplay component
+import { PriceDisplay } from '@/components/ui/price-display';
 import CRMHeader from '@/components/crm/CRMHeader';
 
 interface Property {
@@ -77,7 +77,7 @@ interface User {
   officeId?: string;
 }
 
-const propertyTypes = ['APARTMENT', 'HOUSE', 'VILLA', 'COMMERCIAL', 'OFFICE', 'LAND'];
+const propertyTypes = ['APARTMENT', 'HOUSE', 'VILLA', 'DUPLEX', 'AMBIENT', 'COMMERCIAL', 'OFFICE', 'LAND'];
 const propertyStatuses = ['LISTED', 'UNDER_OFFER', 'SOLD', 'RENTED', 'WITHDRAWN'];
 const listingTypes = ['SALE', 'RENT'];
 
@@ -85,7 +85,7 @@ export default function CRMPropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const currency = useCurrency();
+  // Removed currency hook - now using PriceDisplay component
   const [showFilters, setShowFilters] = useState(false);
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
@@ -107,6 +107,8 @@ export default function CRMPropertiesPage() {
       'APARTMENT': 'Apartament',
       'HOUSE': 'Shtëpi',
       'VILLA': 'Vilë',
+      'DUPLEX': 'Dupleks',
+      'AMBIENT': 'Ambient',
       'COMMERCIAL': 'Komercial',
       'OFFICE': 'Zyrë',
       'LAND': 'Tokë'
@@ -164,6 +166,33 @@ export default function CRMPropertiesPage() {
 
     fetchProperties();
   }, [filters]);
+
+  const handleDeleteProperty = async (propertyId: string, propertyTitle: string) => {
+    if (!confirm(`Jeni të sigurt që doni ta fshini pronën "${propertyTitle}"?\n\nKy veprim nuk mund të anullohet.`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties/${propertyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        alert('✅ Prona u fshi me sukses!');
+        fetchProperties(); // Refresh the list
+      } else {
+        const errorData = await response.json();
+        alert(`❌ ${errorData.message || 'Gabim gjatë fshirjes së pronës'}`);
+      }
+    } catch (error) {
+      console.error('Delete property error:', error);
+      alert(`❌ Gabim gjatë fshirjes së pronës: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -514,7 +543,7 @@ export default function CRMPropertiesPage() {
                   />
                   <span>Prona</span>
                   <span>Listim</span>
-                  <span>Klienti</span>
+                  <span>Pronari</span>
                   <span>Lloji</span>
                   <span>Listim Tip</span>
                   <span>Statusi</span>
@@ -627,9 +656,10 @@ export default function CRMPropertiesPage() {
                       )}
                     </div>
                     
-                    <div style={{ fontWeight: '500', color: '#1f2937' }}>
-                      {formatPriceWithPreference(property.price)}
-                    </div>
+                    <PriceDisplay 
+                      price={property.price}
+                      style={{ fontWeight: '500', color: '#1f2937' }}
+                    />
                     
                     <div>
                       <div style={{ fontSize: '0.875rem', color: '#1f2937' }}>
@@ -676,6 +706,28 @@ export default function CRMPropertiesPage() {
                       >
                         <PencilIcon style={{ width: '1rem', height: '1rem' }} />
                       </Link>
+                      
+                      {/* Delete Button - Only for admins and property owner */}
+                      {(user?.role === 'SUPER_ADMIN' || user?.role === 'OFFICE_ADMIN' || user?.id === property.agentOwner.id) && (
+                        <button
+                          onClick={() => handleDeleteProperty(property.id, property.title)}
+                          style={{ 
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '2rem',
+                            height: '2rem',
+                            background: '#fee2e2',
+                            color: '#dc2626',
+                            border: 'none',
+                            borderRadius: '0.375rem',
+                            cursor: 'pointer'
+                          }}
+                          title="Fshi pronën"
+                        >
+                          <TrashIcon style={{ width: '1rem', height: '1rem' }} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -810,7 +862,7 @@ export default function CRMPropertiesPage() {
                     {/* Client Info */}
                     <div style={{ marginBottom: '1rem' }}>
                       <div style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
-                        Klienti:
+                        Pronari:
                       </div>
                       {property.client ? (
                         <div style={{ 
@@ -856,9 +908,10 @@ export default function CRMPropertiesPage() {
                     }}>
                       <div>
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Çmimi</div>
-                        <div style={{ fontWeight: 'bold', color: '#1f2937', fontSize: '1.125rem' }}>
-                          {formatPriceWithPreference(property.price)}
-                        </div>
+                        <PriceDisplay 
+                          price={property.price}
+                          style={{ fontWeight: 'bold', color: '#1f2937', fontSize: '1.125rem' }}
+                        />
                       </div>
                       <div>
                         <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Lloji</div>
@@ -989,6 +1042,32 @@ export default function CRMPropertiesPage() {
                         <PencilIcon style={{ width: '1rem', height: '1rem' }} />
                         Ndrysho
                       </Link>
+                      
+                      {/* Delete Button - Only for admins and property owner */}
+                      {(user?.role === 'SUPER_ADMIN' || user?.role === 'OFFICE_ADMIN' || user?.id === property.agentOwner.id) && (
+                        <button
+                          onClick={() => handleDeleteProperty(property.id, property.title)}
+                          style={{ 
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            padding: '0.75rem',
+                            background: '#fee2e2',
+                            color: '#dc2626',
+                            border: 'none',
+                            borderRadius: '0.5rem',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '500'
+                          }}
+                          title="Fshi pronën"
+                        >
+                          <TrashIcon style={{ width: '1rem', height: '1rem' }} />
+                          Fshi
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

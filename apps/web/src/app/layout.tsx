@@ -76,23 +76,8 @@ export default function RootLayout({
         <meta name="theme-color" content="#2563eb" />
         <style dangerouslySetInnerHTML={{
           __html: `
-            /* Emergency CSS while Tailwind loads */
             * { box-sizing: border-box; }
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; }
-            .w-5 { width: 1.25rem !important; }
-            .h-5 { height: 1.25rem !important; }
-            .w-8 { width: 2rem !important; }
-            .h-8 { height: 2rem !important; }
-            .text-2xl { font-size: 1.5rem !important; }
-            .font-bold { font-weight: 700 !important; }
-            .bg-primary-600 { background-color: #2563eb !important; }
-            .text-white { color: white !important; }
-            .rounded-lg { border-radius: 0.5rem !important; }
-            .p-4 { padding: 1rem !important; }
-            .mb-4 { margin-bottom: 1rem !important; }
-            .flex { display: flex !important; }
-            .items-center { align-items: center !important; }
-            .justify-center { justify-content: center !important; }
           `
         }} />
       </head>

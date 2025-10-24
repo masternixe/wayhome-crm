@@ -17,7 +17,7 @@ import {
   XCircleIcon,
   DocumentArrowUpIcon,
   UserPlusIcon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 import { formatUserRole } from '@/lib/utils';
 import CRMHeader from '@/components/crm/CRMHeader';
 import apiService from '@/services/apiService';

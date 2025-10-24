@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { CurrencyToggle } from '@/components/ui/currency-toggle';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/20/solid';
 
 interface User {
   id: string;
@@ -50,7 +50,7 @@ export default function CRMHeader({ currentPage, user: propUser }: CRMHeaderProp
   const navItems = [
     { href: '/crm/dashboard', label: 'Dashboard', key: 'dashboard' },
     { href: '/crm/properties', label: 'Pronat', key: 'properties' },
-    { href: '/crm/clients', label: 'Klientët', key: 'clients' },
+    { href: '/crm/clients', label: 'Pronarët', key: 'clients' },
     { href: '/crm/agents', label: 'Agjentët', key: 'agents' },
   ];
 
@@ -92,6 +92,10 @@ export default function CRMHeader({ currentPage, user: propUser }: CRMHeaderProp
     navItems.push({ href: '/crm/analytics', label: 'Analytics', key: 'analytics' });
   }
 
+  if (user?.role === 'SUPER_ADMIN') {
+    navItems.push({ href: '/crm/offices', label: 'Zyrat', key: 'offices' });
+  }
+
   if (isAdmin) {
     navItems.push({ href: '/crm/settings', label: 'Cilësimet', key: 'settings' });
   }
@@ -102,9 +106,11 @@ export default function CRMHeader({ currentPage, user: propUser }: CRMHeaderProp
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
             <Link href="/crm/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-              <div style={{ width: '2rem', height: '2rem', background: '#2563eb', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                🏠
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="Wayhome Logo" 
+                style={{ height: '2rem', width: 'auto' }}
+              />
               <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Wayhome CRM</h1>
             </Link>
             

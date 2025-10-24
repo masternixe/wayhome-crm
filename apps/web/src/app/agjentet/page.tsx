@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/solid';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { PublicHeader } from '@/components/layout/public-header';
 import { PublicFooter } from '@/components/layout/public-footer';
 
@@ -50,16 +50,16 @@ export default function AgjentetPage() {
         // Transform API data to match Agent interface
         agents = data.data.map((user: any) => ({
           id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
+          firstName: user.firstName === 'Super' && user.lastName === 'Admin' ? 'Wayhome Real Estate' : user.firstName,
+          lastName: user.firstName === 'Super' && user.lastName === 'Admin' ? 'Zyra' : user.lastName,
           email: user.email,
           phone: user.phone,
           avatar: user.avatar,
-          office: user.office ? {
-            id: user.office.id,
-            name: user.office.name,
-            city: user.office.city,
-          } : null,
+          office: user.office || (user.firstName === 'Super' && user.lastName === 'Admin' ? {
+            id: 'default',
+            name: 'Wayhome Real Estate Zyra',
+            city: 'Tirana'
+          } : null),
         }));
       }
 
@@ -181,24 +181,34 @@ export default function AgjentetPage() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
               {agents.map((agent) => (
-                <div key={agent.id} style={{ 
-                  background: 'white', 
-                  borderRadius: '1rem', 
-                  padding: '2rem', 
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  textAlign: 'center',
-                  border: '1px solid #e5e7eb'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-                }}
+                <Link 
+                  key={agent.id} 
+                  href={`/agjentet/${agent.id}`}
+                  style={{ 
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    display: 'block'
+                  }}
                 >
+                  <div style={{ 
+                    background: 'white', 
+                    borderRadius: '1rem', 
+                    padding: '2rem', 
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    textAlign: 'center',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                  }}
+                  >
                   {/* Agent Avatar */}
                   <div style={{ marginBottom: '1.5rem' }}>
                     {agent.avatar ? (
@@ -236,12 +246,27 @@ export default function AgjentetPage() {
                   <h3 style={{ 
                     fontSize: '1.5rem', 
                     fontWeight: 'bold', 
-                    marginBottom: '1rem', 
+                    marginBottom: '0.5rem', 
                     color: '#1f2937',
-                    margin: '0 0 1rem 0'
+                    margin: '0 0 0.5rem 0'
                   }}>
                     {agent.firstName} {agent.lastName}
                   </h3>
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: '#f59e0b',
+                    fontWeight: '500',
+                    margin: '0 0 0.5rem 0'
+                  }}>
+                    {agent.firstName === 'Wayhome Real Estate' && agent.lastName === 'Zyra' ? 'Përfaqësues i Wayhome Real Estate' : 'Agjent i Pasurive të Patundshme'}
+                  </p>
+                  <p style={{
+                    fontSize: '0.75rem',
+                    color: '#6b7280',
+                    margin: '0 0 1rem 0'
+                  }}>
+                    {agent.office?.name} • {agent.office?.city}
+                  </p>
 
                   {/* Contact Info */}
                   <div style={{ marginBottom: '1.5rem' }}>
@@ -332,6 +357,7 @@ export default function AgjentetPage() {
                     </a>
                   </div>
                 </div>
+                </Link>
               ))}
             </div>
           )}

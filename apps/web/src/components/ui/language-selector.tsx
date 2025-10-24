@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, GlobeAltIcon } from '@heroicons/react/20/solid';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');

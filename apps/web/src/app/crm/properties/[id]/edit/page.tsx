@@ -68,6 +68,8 @@ const propertyTypes = [
   { value: 'APARTMENT', label: 'Apartament' },
   { value: 'HOUSE', label: 'Shtëpi' },
   { value: 'VILLA', label: 'Vilë' },
+  { value: 'DUPLEX', label: 'Dupleks' },
+  { value: 'AMBIENT', label: 'Ambient' },
   { value: 'COMMERCIAL', label: 'Komerciale' },
   { value: 'OFFICE', label: 'Zyrë' },
   { value: 'LAND', label: 'Tokë' }
@@ -97,6 +99,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     siperfaqeMin: 50,
     siperfaqeMax: 50,
     price: 50000,
+    priceOnRequest: false,
 
     ashensor: false,
     balcony: false,
@@ -107,6 +110,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
     featured: false,
     gallery: [] as string[],
     virtualTourUrl: '',
+    status: 'LISTED',
     agentOwnerId: '',
     collaboratingAgentId: ''
   });
@@ -176,6 +180,7 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
             siperfaqeMin: propertyData.siperfaqeMin || 50,
             siperfaqeMax: propertyData.siperfaqeMax || 50,
             price: propertyData.price || 50000,
+            priceOnRequest: propertyData.priceOnRequest || false,
 
             ashensor: propertyData.ashensor || false,
             balcony: propertyData.balcony || false,
@@ -187,7 +192,8 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
             gallery: propertyData.gallery || [],
             virtualTourUrl: propertyData.virtualTourUrl || '',
             agentOwnerId: propertyData.agentOwnerId || '',
-            collaboratingAgentId: propertyData.collaboratingAgent?.id || ''
+            collaboratingAgentId: propertyData.collaboratingAgent?.id || '',
+            status: propertyData.status || 'LISTED'
           });
           setSelectedClient(propertyData.client || null);
           
@@ -264,7 +270,13 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Handle numeric fields to prevent NaN
+    if (['price', 'bedrooms', 'bathrooms', 'siperfaqeMin', 'siperfaqeMax', 'yearBuilt', 'parkingSpaces'].includes(field)) {
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      setFormData(prev => ({ ...prev, [field]: isNaN(numValue) ? (field === 'price' ? 50000 : field === 'yearBuilt' ? new Date().getFullYear() : field === 'bedrooms' || field === 'bathrooms' ? 1 : field === 'siperfaqeMin' || field === 'siperfaqeMax' ? 50 : 0) : numValue }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleDocumentsChange = (newDocuments: any[]) => {
@@ -411,6 +423,23 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                   >
                     <option value="SALE">Shitje</option>
                     <option value="RENT">Qira</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>
+                    Statusi i Pronës
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
+                  >
+                    <option value="LISTED">Në Listim</option>
+                    <option value="UNDER_OFFER">Nën Ofertë</option>
+                    <option value="SOLD">E Shitur</option>
+                    <option value="RENTED">E Dhënë me Qira</option>
+                    <option value="WITHDRAWN">E Tërhequr</option>
                   </select>
                 </div>
                 <div>
@@ -649,11 +678,39 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                   </label>
                   <input
                     type="number"
-                    min="1000"
+                    min="100"
                     value={formData.price}
                     onChange={(e) => handleInputChange('price', parseFloat(e.target.value))}
-                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
+                    disabled={formData.priceOnRequest}
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.75rem', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '0.5rem', 
+                      fontSize: '1rem',
+                      backgroundColor: formData.priceOnRequest ? '#f3f4f6' : 'white',
+                      color: formData.priceOnRequest ? '#6b7280' : 'inherit'
+                    }}
                   />
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    marginTop: '0.75rem',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    background: '#fef3c7',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #f59e0b'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.priceOnRequest}
+                      onChange={(e) => handleInputChange('priceOnRequest', e.target.checked)}
+                      style={{ width: '1.25rem', height: '1.25rem', accentColor: '#f59e0b' }}
+                    />
+                    <span style={{ fontWeight: '500', color: '#92400e' }}>💰 Çmimi sipas kërkesës</span>
+                  </label>
                 </div>
 
                 <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem', margin: '0.5rem 0 0 0' }}>

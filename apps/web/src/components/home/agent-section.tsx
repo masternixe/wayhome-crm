@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { StarIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/solid';
-import { MapPinIcon } from '@heroicons/react/24/outline';
+import { PhoneIcon, EnvelopeIcon } from '@heroicons/react/20/solid';
+import { MapPinIcon } from '@heroicons/react/20/solid';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -16,8 +16,7 @@ interface Agent {
   avatar?: string;
   specialization?: string;
   city?: string;
-  rating?: number;
-  totalSales?: number;
+  // Removed fake rating and sales stats
 }
 
 export function AgentSection() {
@@ -44,15 +43,14 @@ export function AgentSection() {
         // Transform the API data to match our component interface
         const transformedAgents = data.data.map((agent: any) => ({
           id: agent.id,
-          firstName: agent.firstName,
-          lastName: agent.lastName,
+          firstName: agent.firstName === 'Super' && agent.lastName === 'Admin' ? 'Wayhome Real Estate' : agent.firstName,
+          lastName: agent.firstName === 'Super' && agent.lastName === 'Admin' ? 'Zyra' : agent.lastName,
           email: agent.email,
           phone: agent.phone,
           avatar: agent.avatar,
-          specialization: 'Agjent i pasurive të patundshme',
+          specialization: agent.firstName === 'Super' && agent.lastName === 'Admin' ? 'Përfaqësues i Wayhome Real Estate' : 'Agjent i pasurive të patundshme',
           city: agent.office?.city || 'Tirana',
-          rating: 4.8 + Math.random() * 0.4, // Generate random rating between 4.8-5.2
-          totalSales: Math.floor(Math.random() * 100) + 50 // Random sales count
+          // No fake stats
         }));
         setAgents(transformedAgents);
       } else {
@@ -128,11 +126,7 @@ export function AgentSection() {
                   <div className="h-6 bg-gray-200 rounded mb-2 w-32"></div>
                   <div className="h-4 bg-gray-200 rounded mb-4 w-24"></div>
                   <div className="h-4 bg-gray-200 rounded mb-6 w-40"></div>
-                  <div className="flex gap-2 mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="w-4 h-4 bg-gray-200 rounded"></div>
-                    ))}
-                  </div>
+                  {/* Removed rating skeleton */}
                   <div className="h-10 bg-gray-200 rounded w-full"></div>
                 </div>
               </div>
@@ -146,12 +140,12 @@ export function AgentSection() {
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
           >
             {agents.map((agent, index) => (
-              <motion.div
-                key={agent.id}
-                variants={itemVariants}
-                whileHover={{ y: -10, transition: { duration: 0.3 } }}
-                className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300"
-              >
+              <Link key={agent.id} href={`/agjentet/${agent.id}`} className="block">
+                <motion.div
+                  variants={itemVariants}
+                  whileHover={{ y: -10, transition: { duration: 0.3 } }}
+                  className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                >
                 {/* Agent Avatar */}
                 <div className="flex flex-col items-center mb-6">
                   <motion.div
@@ -181,7 +175,7 @@ export function AgentSection() {
                   </h3>
                   
                   <p className="text-orange-600 font-medium mb-2">
-                    {agent.specialization || 'Agjent i pasurive të patundshme'}
+                    {agent.firstName === 'Wayhome Real Estate' && agent.lastName === 'Zyra' ? 'Përfaqësues i Wayhome Real Estate' : agent.specialization || 'Agjent i pasurive të patundshme'}
                   </p>
 
                   <div className="flex items-center text-gray-600 mb-4">
@@ -190,24 +184,7 @@ export function AgentSection() {
                   </div>
                 </div>
 
-                {/* Rating */}
-                <div className="flex items-center justify-center mb-4">
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <StarIcon
-                        key={i}
-                        className={`w-4 h-4 ${
-                          i < Math.floor(agent.rating || 0)
-                            ? 'text-yellow-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="ml-2 text-sm text-gray-600">
-                    {agent.rating} ({agent.totalSales} shitje)
-                  </span>
-                </div>
+                {/* Removed fake rating system */}
 
                 {/* Contact Buttons */}
                 <div className="space-y-3">
@@ -233,7 +210,8 @@ export function AgentSection() {
                     </motion.a>
                   )}
                 </div>
-              </motion.div>
+                </motion.div>
+              </Link>
             ))}
           </motion.div>
         )}

@@ -124,6 +124,8 @@ const getPropertyTypeLabel = (type: string) => {
     'APARTMENT': 'Apartament',
     'HOUSE': 'Shtëpi',
     'VILLA': 'Vilë',
+    'DUPLEX': 'Dupleks',
+    'AMBIENT': 'Ambient',
     'COMMERCIAL': 'Komercial',
     'OFFICE': 'Zyrë',
     'LAND': 'Tokë'
@@ -388,13 +390,12 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         flashSuccess('✅ Prona u fshi me sukses!');
         window.location.href = '/crm/properties';
       } else {
-        flashError('❌ Gabim gjatë fshirjes së pronës');
+        const errorData = await response.json();
+        flashError(`❌ ${errorData.message || 'Gabim gjatë fshirjes së pronës'}`);
       }
     } catch (error) {
-      flashSuccess('✅ Prona u fshi me sukses! (Demo mode)');
-      setTimeout(() => {
-        window.location.href = '/crm/properties';
-      }, 1000);
+      console.error('Delete property error:', error);
+      flashError(`❌ Gabim gjatë fshirjes së pronës: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -420,7 +421,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   }
 
   const canEdit = user.role === 'SUPER_ADMIN' || user.role === 'OFFICE_ADMIN' || user.id === property.agentOwner.id;
-  const canDelete = user.role === 'SUPER_ADMIN' || user.role === 'OFFICE_ADMIN';
+  const canDelete = user.role === 'SUPER_ADMIN' || user.role === 'OFFICE_ADMIN' || user.id === property.agentOwner.id;
 
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', margin: 0, padding: 0, background: '#f8fafc', minHeight: '100vh' }}>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { StarIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+import { StarIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
 import Image from 'next/image';
 
 interface Testimonial {

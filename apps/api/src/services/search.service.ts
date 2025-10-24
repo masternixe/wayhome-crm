@@ -54,6 +54,7 @@ export interface PropertySearchResult {
   zona: string;
   address: string;
   price: number;
+  priceOnRequest: boolean;
   currency: string;
   bedrooms: number;
   bathrooms: number;
@@ -311,9 +312,17 @@ export class SearchService {
       includeRelations = true 
     } = options;
 
-    const where: Prisma.PropertyWhereInput = {
-      status: filters.status || PropertyStatus.LISTED,
-    };
+    const where: Prisma.PropertyWhereInput = {};
+    
+    // Handle status filter - can be single status or array
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        where.status = { in: filters.status };
+      } else {
+        where.status = filters.status;
+      }
+    }
+    // Don't filter by status if not specified - show all properties
 
     // Build AND conditions array
     const andConditions: Prisma.PropertyWhereInput[] = [];
@@ -432,6 +441,8 @@ export class SearchService {
       skip: offset,
     });
 
+    // Debug: console.log('🔍 SearchService DATABASE RESULT:', properties[0]);
+
     return properties.map(prop => ({
       id: prop.id,
       title: prop.title,
@@ -442,6 +453,7 @@ export class SearchService {
       zona: prop.zona,
       address: prop.address,
       price: prop.price,
+      priceOnRequest: prop.priceOnRequest,
       currency: prop.currency,
       bedrooms: prop.bedrooms,
       bathrooms: prop.bathrooms,

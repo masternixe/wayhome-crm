@@ -8,7 +8,7 @@ import {
   ArrowUpTrayIcon,
   StarIcon,
   ArrowsUpDownIcon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 
 interface ImageUploadGalleryProps {
   images: string[];

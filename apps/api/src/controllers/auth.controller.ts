@@ -52,7 +52,42 @@ export class AuthController {
    */
   register = async (req: Request, res: Response): Promise<void> => {
     try {
+      const authReq = req as any;
+      const requestingUser = authReq.user;
+      
       const data = registerSchema.parse(req.body);
+      
+      // OFFICE_ADMIN can only create users in their own office
+      if (requestingUser.role === 'OFFICE_ADMIN') {
+        if (!requestingUser.officeId) {
+          res.status(400).json({
+            success: false,
+            message: 'Office admin must be assigned to an office',
+          });
+          return;
+        }
+        
+        // Force the officeId to be the admin's office
+        data.officeId = requestingUser.officeId;
+        
+        // Office admin cannot create SUPER_ADMIN or OFFICE_ADMIN from other offices
+        if (data.role === 'SUPER_ADMIN') {
+          res.status(403).json({
+            success: false,
+            message: 'Office admins cannot create super admins',
+          });
+          return;
+        }
+      }
+      
+      // SUPER_ADMIN must explicitly provide officeId (except for SUPER_ADMIN role)
+      if (requestingUser.role === 'SUPER_ADMIN' && !data.officeId && data.role !== 'SUPER_ADMIN') {
+        res.status(400).json({
+          success: false,
+          message: 'Office ID is required when creating non-super-admin users',
+        });
+        return;
+      }
       
       const user = await this.authService.register(data);
       

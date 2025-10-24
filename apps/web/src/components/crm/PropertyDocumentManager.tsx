@@ -8,7 +8,7 @@ import {
   EyeIcon,
   ArrowDownTrayIcon,
   ArrowUpTrayIcon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 import { notifyError, notifySuccess } from '@/lib/notify';
 
 interface PropertyDocument {

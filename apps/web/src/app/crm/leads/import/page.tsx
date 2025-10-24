@@ -11,7 +11,7 @@ import {
   XCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';

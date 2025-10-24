@@ -29,6 +29,7 @@ export function CurrencyToggle() {
   }, []);
 
   const toggleCurrency = (newCurrency: Currency) => {
+    console.log('Currency toggled to:', newCurrency);
     setCurrency(newCurrency);
     setPreferredCurrency(newCurrency);
     
@@ -41,7 +42,7 @@ export function CurrencyToggle() {
   return (
     <div className="flex items-center space-x-2">
       <span className={classNames(
-        currency === 'EUR' ? 'text-primary-600 font-medium' : 'text-gray-500',
+        currency === 'EUR' ? 'text-orange-600 font-medium' : 'text-gray-500',
         'text-sm'
       )}>
         EUR
@@ -50,8 +51,8 @@ export function CurrencyToggle() {
         checked={currency === 'ALL'}
         onChange={(checked) => toggleCurrency(checked ? 'ALL' : 'EUR')}
         className={classNames(
-          currency === 'ALL' ? 'bg-primary-600' : 'bg-gray-200',
-          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
+          currency === 'ALL' ? 'bg-orange-600' : 'bg-gray-200',
+          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2'
         )}
       >
         <span className="sr-only">Toggle currency</span>
@@ -63,7 +64,7 @@ export function CurrencyToggle() {
         />
       </Switch>
       <span className={classNames(
-        currency === 'ALL' ? 'text-primary-600 font-medium' : 'text-gray-500',
+        currency === 'ALL' ? 'text-orange-600 font-medium' : 'text-gray-500',
         'text-sm'
       )}>
         ALL

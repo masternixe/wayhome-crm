@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon } from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 
 interface User {
@@ -68,10 +68,7 @@ export default function NewLeadPage() {
       }
     } catch (error) {
       console.error('Error creating lead:', error);
-      alert('✅ Lead u krijua me sukses! (Demo mode)');
-      setTimeout(() => {
-        window.location.href = '/crm/leads';
-      }, 1000);
+      alert(`❌ Gabim gjatë krijimit të lead-it: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

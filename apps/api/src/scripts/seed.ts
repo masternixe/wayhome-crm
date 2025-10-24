@@ -109,8 +109,8 @@ async function main() {
         brandId: brand.id,
         name: 'Wayhome Tirana',
         city: 'Tirana',
-        address: 'Rruga "Dëshmorët e 4 Shkurtit", Nr. 12, Tirana',
-        phone: '+355 4 2234567',
+        address: 'Rruga, Kristo Luarasi, Lake View Kulla D, Tiranë',
+        phone: '+355 68 504 0201',
         email: 'tirana@wayhome.com',
       }
     }),

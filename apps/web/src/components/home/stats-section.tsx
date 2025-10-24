@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { HomeIcon, UsersIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, UsersIcon, MapPinIcon, CheckCircleIcon } from '@heroicons/react/20/solid';
 
 interface StatItem {
   icon: React.ComponentType<any>;

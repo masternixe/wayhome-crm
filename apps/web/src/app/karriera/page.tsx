@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { PaperClipIcon, MapPinIcon, ClockIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { PaperClipIcon, MapPinIcon, ClockIcon, CurrencyDollarIcon } from '@heroicons/react/20/solid';
 
 const jobOpenings = [
   {

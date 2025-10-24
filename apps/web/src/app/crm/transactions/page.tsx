@@ -15,7 +15,7 @@ import {
   ArrowPathIcon,
   BanknotesIcon,
   UserGroupIcon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 import { formatUserRole } from '@/lib/utils';
 import CRMHeader from '@/components/crm/CRMHeader';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -129,10 +129,11 @@ export default function CRMTransactionsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
+        if (data.success && data.data && Array.isArray(data.data.transactions)) {
           setTransactions(data.data.transactions);
         } else {
-          throw new Error(data.message || 'Failed to fetch transactions');
+          console.warn('No transactions found or invalid response format:', data);
+          setTransactions([]);
         }
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -431,7 +432,7 @@ export default function CRMTransactionsPage() {
               </div>
 
               {/* Table Body */}
-              {filteredTransactions.map((transaction) => (
+              {Array.isArray(filteredTransactions) && filteredTransactions.map((transaction) => (
                 <div key={transaction.id} style={{ 
                   display: 'grid', 
                   gridTemplateColumns: '150px 200px 150px 100px 120px 120px 120px 100px', 

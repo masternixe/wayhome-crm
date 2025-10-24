@@ -11,7 +11,7 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   BriefcaseIcon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 import { formatUserRole } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';

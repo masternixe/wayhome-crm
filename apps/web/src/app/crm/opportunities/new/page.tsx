@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon } from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 
 interface User {
@@ -82,9 +82,25 @@ export default function NewOpportunityPage() {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setClients(data.data);
+        console.log('🔍 Clients API Response:', data);
+        
+        if (data.success && data.data) {
+          // The clients API returns { success: true, data: { clients: [...], pagination: {...} } }
+          const clientsArray = data.data.clients || data.data;
+          if (Array.isArray(clientsArray)) {
+            console.log('✅ Setting clients:', clientsArray.length, 'clients found');
+            setClients(clientsArray);
+          } else {
+            console.warn('❌ Clients data is not an array:', data.data);
+            setClients([]);
+          }
+        } else {
+          console.warn('❌ API response not successful:', data);
+          setClients([]);
         }
+      } else {
+        console.error('❌ HTTP Error:', response.status, response.statusText);
+        setClients([]);
       }
     } catch (error) {
       console.error('Failed to fetch clients:', error);
@@ -104,8 +120,10 @@ export default function NewOpportunityPage() {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setProperties(data.data.properties || []);
+        if (data.success && data.data && Array.isArray(data.data.properties)) {
+          setProperties(data.data.properties);
+        } else {
+          setProperties([]);
         }
       }
     } catch (error) {
@@ -150,11 +168,7 @@ export default function NewOpportunityPage() {
       }
     } catch (error) {
       console.error('Error creating opportunity:', error);
-      console.log('💡 API endpoints not implemented yet - using demo mode');
-      alert('✅ Opportunity u krijua me sukses! (Demo mode - API not connected yet)');
-      setTimeout(() => {
-        window.location.href = '/crm/opportunities';
-      }, 1000);
+      alert(`❌ Gabim gjatë krijimit të opportunity: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -251,7 +265,7 @@ export default function NewOpportunityPage() {
                     style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
                   >
                     <option value="">Zgjidhni klientin...</option>
-                    {clients.map(client => (
+                    {Array.isArray(clients) && clients.map(client => (
                       <option key={client.id} value={client.id}>
                         {client.firstName} {client.lastName} ({client.mobile})
                       </option>
@@ -271,7 +285,7 @@ export default function NewOpportunityPage() {
                     onChange={(e) => handleInputChange('stage', e.target.value)}
                     style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
                   >
-                    {opportunityStages.map(stage => (
+                    {Array.isArray(opportunityStages) && opportunityStages.map(stage => (
                       <option key={stage.value} value={stage.value}>{stage.label}</option>
                     ))}
                   </select>
@@ -338,7 +352,7 @@ export default function NewOpportunityPage() {
                     style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
                   >
                     <option value="">Asnjë pronë e specifikuar...</option>
-                    {properties.map(property => (
+                    {Array.isArray(properties) && properties.map(property => (
                       <option key={property.id} value={property.id}>
                         {property.title} - {formatCurrency(property.price)}
                       </option>

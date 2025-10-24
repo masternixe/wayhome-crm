@@ -17,7 +17,7 @@ import {
   HomeIcon,
   TableCellsIcon,
   Squares2X2Icon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 import { formatUserRole } from '@/lib/utils';
 
@@ -61,6 +61,7 @@ export default function CRMClientsPage() {
   const [loading, setLoading] = useState(true);
   const [showNewClientForm, setShowNewClientForm] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [agents, setAgents] = useState<any[]>([]);
   const [filters, setFilters] = useState({
     q: '',
     agentId: '',
@@ -72,7 +73,8 @@ export default function CRMClientsPage() {
     mobile: '',
     email: '',
     preferredCurrency: 'EUR',
-    notes: ''
+    notes: '',
+    ownerAgentId: ''
   });
 
   // Initialize user and default filters once
@@ -95,7 +97,28 @@ export default function CRMClientsPage() {
   // Fetch clients when filters change
   useEffect(() => {
     fetchClients();
+    fetchAgents();
   }, [filters]);
+
+  const fetchAgents = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users?role=AGENT,MANAGER`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Filter out soft deleted agents (status !== 'ACTIVE')
+        const activeAgents = (result.data || []).filter((agent: any) => agent.status === 'ACTIVE');
+        setAgents(activeAgents);
+      }
+    } catch (error) {
+      console.error('Failed to fetch agents:', error);
+    }
+  };
 
   const fetchClients = async () => {
     setLoading(true);
@@ -135,19 +158,36 @@ export default function CRMClientsPage() {
     e.preventDefault();
     
     try {
-      alert('Klienti u krijua me sukses! (Demo mode)');
-      setShowNewClientForm(false);
-      setNewClient({
-        firstName: '',
-        lastName: '',
-        mobile: '',
-        email: '',
-        preferredCurrency: 'EUR',
-        notes: ''
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newClient),
       });
-      fetchClients();
+
+      if (response.ok) {
+        alert('✅ Pronari u krijua me sukses!');
+        setShowNewClientForm(false);
+        setNewClient({
+          firstName: '',
+          lastName: '',
+          mobile: '',
+          email: '',
+          preferredCurrency: 'EUR',
+          notes: '',
+          ownerAgentId: ''
+        });
+        fetchClients(); // Refresh the list
+      } else {
+        const errorData = await response.json();
+        alert(`❌ Gabim: ${errorData.message || 'Nuk mund të krijohet klienti'}`);
+      }
     } catch (error) {
-      alert('Gabim gjatë krijimit të klientit');
+      console.error('Error creating client:', error);
+      alert(`❌ Gabim gjatë krijimit të klientit: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -164,7 +204,7 @@ export default function CRMClientsPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937', margin: '0 0 0.5rem 0' }}>
-              Menaxhimi i Klientëve
+              Menaxhimi i Pronarëve
             </h1>
             <p style={{ color: '#6b7280', margin: 0 }}>
               {loading ? 'Duke ngarkuar...' : `${clients.length} klientë gjithsej`}
@@ -248,7 +288,7 @@ export default function CRMClientsPage() {
           <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <UserIcon style={{ width: '1.5rem', height: '1.5rem', color: '#2563eb' }} />
-              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '500' }}>Total Klientë</span>
+              <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: '500' }}>Total Pronarë</span>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1f2937' }}>
               {clients.length}
@@ -414,7 +454,7 @@ export default function CRMClientsPage() {
                           {client.firstName} {client.lastName}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                          Klient prej {new Date(client.createdAt).toLocaleDateString()}
+                          Pronar prej {new Date(client.createdAt).toLocaleDateString()}
                         </div>
                         {client.totalSpent && (
                           <div style={{ fontSize: '0.875rem', fontWeight: '500', color: '#059669' }}>
@@ -574,7 +614,7 @@ export default function CRMClientsPage() {
                           {client.firstName} {client.lastName}
                         </h3>
                         <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                          Klient prej {new Date(client.createdAt).toLocaleDateString()}
+                          Pronar prej {new Date(client.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
@@ -869,6 +909,25 @@ export default function CRMClientsPage() {
                   onChange={(e) => setNewClient(prev => ({ ...prev, email: e.target.value }))}
                   style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem' }}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>
+                  Agjenti Përgjegjës *
+                </label>
+                <select
+                  value={newClient.ownerAgentId}
+                  onChange={(e) => setNewClient(prev => ({ ...prev, ownerAgentId: e.target.value }))}
+                  required
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem' }}
+                >
+                  <option value="">Zgjidh Agjentin...</option>
+                  {Array.isArray(agents) && agents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.firstName} {agent.lastName} ({agent.role})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div style={{ gridColumn: '1 / -1' }}>

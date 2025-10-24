@@ -16,23 +16,26 @@ export function generateSlug(text: string): string {
  */
 export function generatePropertySlug(id: string, title: string): string {
   const titleSlug = generateSlug(title);
-  const shortId = id.slice(-6); // Use last 6 characters of ID for uniqueness
-  return `${titleSlug}-${shortId}`;
+  // Use full ID to ensure we can extract it properly
+  return `${titleSlug}-${id}`;
 }
 
 /**
  * Extract ID from a property slug
  */
 export function extractIdFromSlug(slug: string): string {
-  const parts = slug.split('-');
-  const lastPart = parts[parts.length - 1];
-  
-  // If the last part looks like a short ID (6 chars), it might be our ID suffix
-  if (lastPart && lastPart.length >= 6) {
-    return lastPart;
+  // If slug contains dashes, it's likely a generated slug
+  if (slug.includes('-')) {
+    const parts = slug.split('-');
+    const lastPart = parts[parts.length - 1];
+    
+    // The last part should be our full property ID
+    if (lastPart) {
+      return lastPart;
+    }
   }
   
-  // Fallback - treat the whole slug as potential ID
+  // Fallback - treat the whole slug as potential ID (for direct ID links)
   return slug;
 }
 
@@ -54,6 +57,8 @@ export function formatPropertyType(type: string): string {
     'APARTMENT': 'Apartament',
     'HOUSE': 'Shtëpi',
     'VILLA': 'Vilë',
+    'DUPLEX': 'Dupleks',
+    'AMBIENT': 'Ambient',
     'COMMERCIAL': 'Komerciale',
     'OFFICE': 'Zyrë',
     'LAND': 'Tokë'

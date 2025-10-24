@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { PrismaClient } from '@wayhome/database';
+import { ImageService } from '../services/image.service';
+import { CacheService } from '../services/cache.service';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
@@ -59,7 +61,15 @@ const upload = multer({
 });
 
 export class UploadController {
-  constructor(private prisma: PrismaClient) {}
+  private imageService: ImageService;
+  
+  constructor(
+    private prisma: PrismaClient, 
+    private cacheService: CacheService
+  ) {
+    const uploadDir = path.join(process.cwd(), 'uploads', 'images');
+    this.imageService = new ImageService(uploadDir, cacheService);
+  }
   
   /**
    * Upload document
@@ -82,7 +92,13 @@ export class UploadController {
 
         // Generate public URL for the file
         const baseUrl = process.env.API_URL || 'http://localhost:4001';
-        const fileUrl = `${baseUrl}/api/v1/uploads/documents/${file.filename}`;
+        // Ensure HTTPS and use domain instead of IP for production
+        let secureBaseUrl = baseUrl.replace(/^http:/, 'https:');
+        // Replace IP address with domain for production
+        if (secureBaseUrl.includes('103.86.176.122')) {
+          secureBaseUrl = 'https://wayhome.al';
+        }
+        const fileUrl = `${secureBaseUrl}/api/v1/uploads/documents/${file.filename}`;
 
         // Check if this is for a property document
         const { propertyId } = req.body;
@@ -230,7 +246,7 @@ export class UploadController {
 
           results.push({
             id: file.filename,
-            url: `${baseUrl}/api/v1/uploads/documents/clients/${clientId}/${file.filename}`,
+            url: `${secureBaseUrl}/api/v1/uploads/documents/clients/${clientId}/${file.filename}`,
             originalName: file.originalname,
             size: file.size,
             type: file.mimetype,
@@ -396,21 +412,61 @@ export class UploadController {
 
         // Generate public URL for the file
         const baseUrl = process.env.API_URL || 'http://localhost:4001';
-        const fileUrl = `${baseUrl}/api/v1/uploads/images/${file.filename}`;
+        // Ensure HTTPS and use domain instead of IP for production
+        let secureBaseUrl = baseUrl.replace(/^http:/, 'https:');
+        // Replace IP address with domain for production
+        if (secureBaseUrl.includes('103.86.176.122')) {
+          secureBaseUrl = 'https://wayhome.al';
+        }
+        const fileUrl = `${secureBaseUrl}/api/v1/uploads/images/${file.filename}`;
 
-        res.json({
-          success: true,
-          data: {
-            id: file.filename,
-            url: fileUrl,
-            originalName: file.originalname,
-            size: file.size,
-            type: file.mimetype,
-            uploadedBy: authReq.user.userId,
-            uploadedAt: new Date().toISOString(),
-          },
-          message: 'Image uploaded successfully',
-        });
+        // Process and optimize the image
+        try {
+          const imagePath = path.join(process.cwd(), 'uploads', 'images', file.filename);
+          
+          // Generate optimized variants
+          const variants = await this.imageService.generateVariants(
+            imagePath,
+            file.filename,
+            secureBaseUrl
+          );
+
+          // Get image metadata
+          const metadata = await this.imageService.getImageMetadata(imagePath);
+
+          res.json({
+            success: true,
+            data: {
+              id: file.filename,
+              url: fileUrl,
+              variants,
+              metadata,
+              originalName: file.originalname,
+              size: file.size,
+              type: file.mimetype,
+              uploadedBy: authReq.user.userId,
+              uploadedAt: new Date().toISOString(),
+            },
+            message: 'Image uploaded and optimized successfully',
+          });
+        } catch (optimizationError) {
+          console.warn('Image optimization failed, returning original:', optimizationError);
+          
+          // Return original image if optimization fails
+          res.json({
+            success: true,
+            data: {
+              id: file.filename,
+              url: fileUrl,
+              originalName: file.originalname,
+              size: file.size,
+              type: file.mimetype,
+              uploadedBy: authReq.user.userId,
+              uploadedAt: new Date().toISOString(),
+            },
+            message: 'Image uploaded successfully',
+          });
+        }
       } catch (error) {
         console.error('Image upload error:', error);
         res.status(500).json({
@@ -515,4 +571,63 @@ export class UploadController {
       });
     }
   };
+
+  uploadBackgroundImage = [
+    upload.single('file'),
+    async (req: Request, res: Response) => {
+      try {
+        const { user } = req as any;
+
+        // Only super admins can upload background images
+        if (user.role !== 'SUPER_ADMIN') {
+          res.status(403).json({
+            success: false,
+            message: 'Access denied - only super admins can upload background images',
+          });
+          return;
+        }
+
+        const file = req.file;
+        if (!file) {
+          res.status(400).json({
+            success: false,
+            message: 'No file uploaded',
+          });
+          return;
+        }
+
+        // Generate public URL for the file
+        const baseUrl = process.env.API_URL || 'http://localhost:4001';
+        // Ensure HTTPS and use domain instead of IP for production
+        let secureBaseUrl = baseUrl.replace(/^http:/, 'https:');
+        // Replace IP address with domain for production
+        if (secureBaseUrl.includes('103.86.176.122')) {
+          secureBaseUrl = 'https://wayhome.al';
+        }
+        const fileUrl = `${secureBaseUrl}/api/v1/uploads/images/${file.filename}`;
+
+        // Save the background image URL to settings
+        await this.prisma.setting.upsert({
+          where: { key: 'homepageBackgroundImage' },
+          update: { value: fileUrl },
+          create: { key: 'homepageBackgroundImage', value: fileUrl },
+        });
+
+        res.json({
+          success: true,
+          message: 'Background image uploaded successfully',
+          data: {
+            url: fileUrl,
+          },
+        });
+      } catch (error) {
+        console.error('Background image upload error:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to upload background image',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+  ];
 }

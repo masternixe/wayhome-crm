@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDownTrayIcon, ArrowUpTrayIcon, DocumentIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, ArrowUpTrayIcon, DocumentIcon, EyeIcon, TrashIcon } from '@heroicons/react/20/solid';
 import { notifyError, notifySuccess } from '@/lib/notify';
 
 interface ClientDocument {

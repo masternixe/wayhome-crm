@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ChevronDownIcon } from '@heroicons/react/20/solid';
 
 interface DateRange {
   startDate: string;

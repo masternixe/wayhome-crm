@@ -302,11 +302,35 @@ export class ClientController {
 
       const data = validation.data;
 
+      // Ensure user has office assigned (except for SUPER_ADMIN)
+      if (!user.officeId && user.role !== 'SUPER_ADMIN') {
+        res.status(400).json({
+          success: false,
+          message: 'User must be assigned to an office to create clients',
+        });
+        return;
+      }
+
+      // For Super Admin without office, assign to first available office
+      let officeId = user.officeId;
+      if (!officeId && user.role === 'SUPER_ADMIN') {
+        const firstOffice = await this.prisma.office.findFirst();
+        if (firstOffice) {
+          officeId = firstOffice.id;
+        } else {
+          res.status(500).json({
+            success: false,
+            message: 'No office found in the system',
+          });
+          return;
+        }
+      }
+
       // Check if client with same mobile already exists in the office
       const existingClient = await this.prisma.client.findFirst({
         where: {
           mobile: data.mobile,
-          officeId: user.officeId,
+          officeId: officeId,
         },
       });
 
@@ -318,13 +342,21 @@ export class ClientController {
         return;
       }
 
-      // If ownerAgentId is not provided, assign to current user (if they're an agent)
-      const ownerAgentId = data.ownerAgentId || (user.role === 'AGENT' ? user.userId : null);
+      // Require ownerAgentId to be provided
+      if (!data.ownerAgentId) {
+        res.status(400).json({
+          success: false,
+          message: 'Owner agent must be specified',
+        });
+        return;
+      }
+
+      const ownerAgentId = data.ownerAgentId;
 
       const client = await this.prisma.client.create({
         data: {
           ...data,
-          officeId: user.officeId,
+          officeId: officeId,
           ownerAgentId,
         },
         include: {

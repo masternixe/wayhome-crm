@@ -16,7 +16,7 @@ import {
   EyeIcon,
   HeartIcon,
   ChartBarIcon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 import AnalyticsChart from '@/components/crm/AnalyticsChart';
 import DateRangePicker from '@/components/crm/DateRangePicker';

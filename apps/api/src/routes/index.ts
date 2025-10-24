@@ -19,6 +19,17 @@ import { TaskController } from '../controllers/task.controller';
 import { DashboardController } from '../controllers/dashboard.controller';
 import { SettingsController } from '../controllers/settings.controller';
 import { UploadController } from '../controllers/upload.controller';
+import { OfficeController } from '../controllers/office.controller';
+import { CacheService } from '../services/cache.service';
+import { 
+  createCacheMiddleware,
+  createPropertyCacheMiddleware,
+  createPropertyDetailsCacheMiddleware,
+  createAnalyticsCacheMiddleware,
+  createSearchCacheMiddleware,
+  createStaticCacheMiddleware,
+  createCacheInvalidationMiddleware
+} from '../middleware/cache.middleware';
 import { AuthMiddleware, requireAuth, requireAgent, requireManager, requireOfficeAdmin, requireSuperAdmin } from '../middleware/auth.middleware';
 import Redis from 'ioredis';
 
@@ -33,6 +44,9 @@ export function createRoutes(
 ): Router {
   const router = Router();
   const authMiddleware = new AuthMiddleware(authService);
+  
+  // Initialize cache service
+  const cacheService = new CacheService(redisConnection);
 
   // Initialize controllers
   const authController = new AuthController(authService, emailService);
@@ -46,7 +60,8 @@ export function createRoutes(
   const taskController = new TaskController(prisma);
   const dashboardController = new DashboardController(prisma);
   const settingsController = new SettingsController(prisma);
-  const uploadController = new UploadController(prisma);
+  const uploadController = new UploadController(prisma, cacheService);
+  const officeController = new OfficeController(prisma);
 
   // Health check
   router.get('/health', (req, res) => {
@@ -69,12 +84,45 @@ export function createRoutes(
   router.get('/auth/verify-email', authController.verifyEmail);
 
   // Properties routes
-  router.get('/properties', requireAgent(authService), propertyController.search);
-  router.post('/properties', requireAgent(authService), propertyController.create);
-  router.get('/properties/:id', requireAgent(authService), propertyController.getById);
-  router.patch('/properties/:id', requireAgent(authService), propertyController.update);
-  router.delete('/properties/:id', requireAgent(authService), propertyController.delete);
-  router.get('/properties/:id/similar', propertyController.getSimilar);
+  router.get('/properties', 
+    requireAgent(authService),
+    createPropertyCacheMiddleware(cacheService),
+    propertyController.search
+  );
+  router.post('/properties', 
+    requireAgent(authService),
+    createCacheInvalidationMiddleware(cacheService, ['properties:*', 'api:properties:*', 'analytics:*']),
+    propertyController.create
+  );
+  router.get('/properties/:id', 
+    requireAgent(authService),
+    createPropertyDetailsCacheMiddleware(cacheService),
+    propertyController.getById
+  );
+  router.patch('/properties/:id', 
+    requireAgent(authService),
+    createCacheInvalidationMiddleware(cacheService, (req) => [
+      `property:${req.params.id}`,
+      'properties:*',
+      'api:properties:*',  // Add this for public API cache
+      'analytics:*'
+    ]),
+    propertyController.update
+  );
+  router.delete('/properties/:id', 
+    requireAgent(authService),
+    createCacheInvalidationMiddleware(cacheService, (req) => [
+      `property:${req.params.id}`,
+      'properties:*',
+      'api:properties:*',  // Add this for public API cache
+      'analytics:*'
+    ]),
+    propertyController.delete
+  );
+  router.get('/properties/:id/similar', 
+    createPropertyCacheMiddleware(cacheService),
+    propertyController.getSimilar
+  );
   router.post('/properties/:id/badges', requireOfficeAdmin(authService), propertyController.updateBadges);
 
   // Leads routes
@@ -88,10 +136,21 @@ export function createRoutes(
 
   // Analytics routes
   router.get('/analytics', requireManager(authService), analyticsController.getAnalytics.bind(analyticsController));
-  router.get('/offices', requireAuth(authService), analyticsController.getOffices.bind(analyticsController));
+  
+  // Office management routes
+  router.get('/offices', requireAuth(authService), officeController.getAll.bind(officeController));
+  router.post('/offices', requireSuperAdmin(authService), officeController.create.bind(officeController));
+  router.get('/offices/:id', requireAuth(authService), officeController.getById.bind(officeController));
+  router.patch('/offices/:id', requireSuperAdmin(authService), officeController.update.bind(officeController));
+  router.delete('/offices/:id', requireSuperAdmin(authService), officeController.delete.bind(officeController));
+  router.get('/offices/:id/stats', requireAuth(authService), officeController.getStats.bind(officeController));
 
   // Opportunities routes
-  router.get('/opportunities', requireAgent(authService), opportunityController.search.bind(opportunityController));
+  router.get('/opportunities', 
+    requireAgent(authService),
+    createCacheMiddleware(cacheService, { ttl: 300 }), // 5 minutes
+    opportunityController.search.bind(opportunityController)
+  );
   router.post('/opportunities', requireAgent(authService), opportunityController.create.bind(opportunityController));
   router.get('/opportunities/stats', requireAgent(authService), opportunityController.getStats.bind(opportunityController));
   router.get('/opportunities/:id', requireAgent(authService), opportunityController.getById.bind(opportunityController));
@@ -101,7 +160,11 @@ export function createRoutes(
   router.delete('/opportunities/:id', requireManager(authService), opportunityController.delete.bind(opportunityController));
 
   // Clients routes
-  router.get('/clients', requireAgent(authService), clientController.search.bind(clientController));
+  router.get('/clients', 
+    requireAgent(authService),
+    createCacheMiddleware(cacheService, { ttl: 300 }), // 5 minutes
+    clientController.search.bind(clientController)
+  );
   router.post('/clients', requireAgent(authService), clientController.create.bind(clientController));
   router.get('/clients/stats', requireAgent(authService), clientController.getStats.bind(clientController));
   router.get('/clients/:id', requireAgent(authService), clientController.getById.bind(clientController));
@@ -109,7 +172,11 @@ export function createRoutes(
   router.delete('/clients/:id', requireManager(authService), clientController.delete.bind(clientController));
 
   // Transactions routes
-  router.get('/transactions', requireAgent(authService), transactionController.search.bind(transactionController));
+  router.get('/transactions', 
+    requireAgent(authService),
+    createCacheMiddleware(cacheService, { ttl: 300 }), // 5 minutes
+    transactionController.search.bind(transactionController)
+  );
   router.post('/transactions', requireAgent(authService), transactionController.create.bind(transactionController));
   router.get('/transactions/stats', requireAgent(authService), transactionController.getStats.bind(transactionController));
   router.get('/transactions/:id', requireAgent(authService), transactionController.getById.bind(transactionController));
@@ -142,9 +209,14 @@ export function createRoutes(
   router.get('/dashboard/recent-activity', requireAuth(authService), dashboardController.getRecentActivity.bind(dashboardController));
 
   // Settings routes
-  router.get('/settings', requireManager(authService), settingsController.getSettings.bind(settingsController));
-  router.put('/settings', requireSuperAdmin(authService), settingsController.updateSettings.bind(settingsController));
+  router.get('/settings', settingsController.getSettings.bind(settingsController));
+  router.patch('/settings', requireSuperAdmin(authService), settingsController.updateSettings.bind(settingsController));
+  router.post('/settings/background-image', requireSuperAdmin(authService), ...uploadController.uploadBackgroundImage);
   router.get('/settings/exchange-rates', settingsController.getExchangeRates.bind(settingsController));
+  
+  // System Settings routes
+  router.get('/system-settings', requireSuperAdmin(authService), settingsController.getSystemSettings.bind(settingsController));
+  router.post('/system-settings', requireSuperAdmin(authService), settingsController.updateSystemSettings.bind(settingsController));
 
   // Upload routes
   router.post('/upload/document', requireAuth(authService), ...uploadController.uploadDocument);
@@ -225,6 +297,7 @@ export function createRoutes(
   });
 
   // Users/Agents endpoint
+  router.post('/users', requireAuth(authService), authController.register);
   router.get('/users', requireAuth(authService), async (req, res) => {
     try {
       const { user } = req as any;
@@ -450,6 +523,148 @@ export function createRoutes(
     }
   });
 
+  // Delete user/agent
+  router.delete('/users/:id', requireAuth(authService), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { user } = req as any;
+
+      // Only admins can delete users
+      if (user.role !== 'SUPER_ADMIN' && user.role !== 'OFFICE_ADMIN') {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied - only admins can delete users',
+        });
+        return;
+      }
+
+      // Check if target user exists
+      const targetUser = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          officeId: true,
+          _count: {
+            select: {
+              ownedProperties: true,
+              assignedLeads: true,
+              ownedOpportunities: true,
+              primaryTransactions: true,
+              ownedClients: true,
+            },
+          },
+        },
+      });
+
+      if (!targetUser) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      // Office admins can only delete users from their office
+      if (user.role === 'OFFICE_ADMIN' && targetUser.officeId !== user.officeId) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied - can only delete users from your office',
+        });
+        return;
+      }
+
+      // Cannot delete yourself
+      if (user.userId === id) {
+        res.status(400).json({
+          success: false,
+          message: 'Cannot delete your own account',
+        });
+        return;
+      }
+
+      // Cannot delete super admins (unless you are one)
+      if (targetUser.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+        res.status(403).json({
+          success: false,
+          message: 'Cannot delete super admin accounts',
+        });
+        return;
+      }
+
+      // Check if user has active data - warn but allow deletion
+      const hasActiveData = 
+        targetUser._count.ownedProperties > 0 ||
+        targetUser._count.assignedLeads > 0 ||
+        targetUser._count.ownedOpportunities > 0 ||
+        targetUser._count.primaryTransactions > 0 ||
+        targetUser._count.ownedClients > 0;
+
+      if (hasActiveData) {
+        // For now, we'll prevent deletion if user has active data
+        // In the future, we might want to reassign or archive instead
+        res.status(400).json({
+          success: false,
+          message: `Cannot delete ${targetUser.firstName} ${targetUser.lastName} - user has active properties, leads, transactions, or clients. Please reassign their data first.`,
+          data: {
+            properties: targetUser._count.ownedProperties,
+            leads: targetUser._count.assignedLeads,
+            opportunities: targetUser._count.ownedOpportunities,
+            transactions: targetUser._count.primaryTransactions,
+            clients: targetUser._count.ownedClients,
+          },
+        });
+        return;
+      }
+
+      // Try to permanently delete the user first
+      try {
+        await prisma.user.delete({
+          where: { id },
+        });
+
+        res.json({
+          success: true,
+          message: `User ${targetUser.firstName} ${targetUser.lastName} deleted successfully`,
+        });
+      } catch (deleteError: any) {
+        // If deletion fails due to foreign key constraints, perform soft delete instead
+        if (deleteError.code === 'P2003' || deleteError.message?.includes('foreign key constraint')) {
+          console.log(`Cannot permanently delete user ${id}, performing soft delete instead`);
+          
+          // Soft delete: deactivate the user and clear sensitive data
+          await prisma.user.update({
+            where: { id },
+            data: {
+              status: 'INACTIVE',
+              email: `deleted_${Date.now()}_${targetUser.email}`, // Prevent email conflicts
+              phone: null,
+              avatar: null,
+              firstName: '[DELETED]',
+              lastName: 'USER',
+            },
+          });
+
+          res.json({
+            success: true,
+            message: `User ${targetUser.firstName} ${targetUser.lastName} has been deactivated (soft deleted) due to existing data references`,
+          });
+          return;
+        }
+        throw deleteError; // Re-throw if it's not a constraint error
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete user',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
   // Points and leaderboard
   router.get('/agents/:id/points', requireAuth(authService), async (req, res) => {
     try {
@@ -493,11 +708,13 @@ export function createRoutes(
     }
   });
 
-  // Public property search (for website)
-  router.get('/public/properties', async (req, res) => {
+  // Public property search (for website) with caching
+  router.get('/public/properties', 
+    createPropertyCacheMiddleware(cacheService),
+    async (req, res) => {
     try {
       const filters = {
-        status: 'LISTED' as any,
+        status: ['LISTED', 'SOLD', 'RENTED', 'UNDER_OFFER'] as any,
         ...req.query,
       };
 
@@ -519,6 +736,9 @@ export function createRoutes(
       }
       if (req.query.bathrooms !== undefined) {
         filters.bathrooms = Number(req.query.bathrooms);
+      }
+      if (req.query.agentId !== undefined) {
+        filters.agentId = req.query.agentId as string;
       }
 
       console.log('🔍 Public properties search filters:', filters);
@@ -557,14 +777,29 @@ export function createRoutes(
   });
 
   // Public property detail
-  router.get('/public/properties/:id', async (req, res) => {
+  router.get('/public/properties/:id',
+    createPropertyDetailsCacheMiddleware(cacheService),
+    async (req, res) => {
     try {
       const { id } = req.params;
 
       const property = await prisma.property.findUnique({
-        where: { id, status: 'LISTED' },
+        where: { 
+          id, 
+          status: { in: ['LISTED', 'SOLD', 'RENTED', 'UNDER_OFFER'] }
+        },
         include: {
           agentOwner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              phone: true,
+              email: true,
+            },
+          },
+          collaboratingAgent: {
             select: {
               id: true,
               firstName: true,
@@ -702,7 +937,7 @@ export function createRoutes(
 
       const agents = await prisma.user.findMany({
         where: {
-          role: { in: ['AGENT', 'MANAGER', 'OFFICE_ADMIN'] },
+          role: { in: ['AGENT', 'MANAGER', 'OFFICE_ADMIN', 'SUPER_ADMIN'] },
           status: 'ACTIVE',
         },
         select: {
@@ -727,10 +962,35 @@ export function createRoutes(
         },
       });
 
+      // Transform agents to handle super admin without office
+      const transformedAgents = agents.map(agent => {
+        const transformed = {
+          ...agent,
+          // Change Super Admin name for frontend display
+          firstName: agent.role === 'SUPER_ADMIN' ? 'Way Home' : agent.firstName,
+          lastName: agent.role === 'SUPER_ADMIN' ? 'Real Estate' : agent.lastName,
+          office: agent.office || (agent.role === 'SUPER_ADMIN' ? {
+            id: 'default',
+            name: 'Way Home Real Estate Zyra',
+            city: 'Tirana'
+          } : null)
+        };
+        
+        if (agent.role === 'SUPER_ADMIN') {
+          console.log('🏢 Super Admin transformed:', { 
+            original: `${agent.firstName} ${agent.lastName}`, 
+            transformed: `${transformed.firstName} ${transformed.lastName}`,
+            office: transformed.office?.name 
+          });
+        }
+        
+        return transformed;
+      });
+
       // Always return success with data array (empty if no agents)
       res.json({
         success: true,
-        data: Array.isArray(agents) ? agents : [],
+        data: Array.isArray(transformedAgents) ? transformedAgents : [],
         total: agents?.length || 0,
       });
     } catch (error) {
@@ -844,7 +1104,7 @@ export function createRoutes(
   router.post('/upload', requireAuth(authService), ...uploadController.uploadDocument);
   router.post('/upload/image', requireAuth(authService), ...uploadController.uploadImage);
 
-  // Serve uploaded files with CORS headers
+  // Serve uploaded files with CORS headers and caching
   router.use('/uploads', (req, res, next) => {
     // Override security headers for uploads
     res.removeHeader('Cross-Origin-Resource-Policy');
@@ -856,7 +1116,7 @@ export function createRoutes(
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Cross-Origin-Resource-Policy', 'cross-origin');
     next();
-  }, express.static(path.join(process.cwd(), 'uploads')));
+  }, createStaticCacheMiddleware(), express.static(path.join(process.cwd(), 'uploads')));
 
   return router;
 }

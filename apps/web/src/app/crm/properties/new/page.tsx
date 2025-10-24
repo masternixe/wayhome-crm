@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeftIcon, PhotoIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, PhotoIcon, PlusIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import { flashSuccess, flashError } from '@/lib/notify';
 import CRMHeader from '@/components/crm/CRMHeader';
 import PropertyDocumentManager from '@/components/crm/PropertyDocumentManager';
@@ -13,6 +13,7 @@ interface User {
   firstName: string;
   lastName: string;
   role: string;
+  status: string;
   officeId?: string;
 }
 
@@ -20,20 +21,30 @@ const propertyTypes = [
   { value: 'APARTMENT', label: 'Apartament' },
   { value: 'HOUSE', label: 'Shtëpi' },
   { value: 'VILLA', label: 'Vilë' },
+  { value: 'DUPLEX', label: 'Dupleks' },
+  { value: 'AMBIENT', label: 'Ambient' },
   { value: 'COMMERCIAL', label: 'Komerciale' },
   { value: 'OFFICE', label: 'Zyrë' },
   { value: 'LAND', label: 'Tokë' }
+];
+
+const listingTypes = [
+  { value: 'SALE', label: 'Shitje' },
+  { value: 'RENT', label: 'Qira' }
 ];
 
 const availableBadges = ['New', 'Luxury', 'Exclusive', 'Sea View', 'Garden', 'Pool', 'Central', 'Furnished', 'Investment'];
 
 export default function NewPropertyPage() {
   const [user, setUser] = useState<User | null>(null);
+  const [agents, setAgents] = useState<User[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'APARTMENT',
+    listingType: 'SALE',
     city: '',
     zona: '',
     address: '',
@@ -42,6 +53,7 @@ export default function NewPropertyPage() {
     siperfaqeMin: 50,
     siperfaqeMax: 50,
     price: 50000,
+    priceOnRequest: false,
 
     ashensor: false,
     balcony: false,
@@ -52,7 +64,9 @@ export default function NewPropertyPage() {
     featured: false,
     gallery: [] as string[],
     virtualTourUrl: '',
-    collaboratingAgentId: ''
+    agentOwnerId: '',
+    collaboratingAgentId: '',
+    clientId: ''
   });
   const [documents, setDocuments] = useState<any[]>([]);
 
@@ -63,13 +77,102 @@ export default function NewPropertyPage() {
     } else {
       window.location.href = '/crm';
     }
+    fetchAgents();
+    fetchClients();
   }, []);
+
+  const fetchClients = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Clients API response:', result); // Debug log
+        
+        // Handle different response structures
+        let clientsData = [];
+        if (result.success && result.data) {
+          // If it's a paginated response with clients array
+          clientsData = result.data.clients || result.data || [];
+        } else if (result.data) {
+          clientsData = result.data;
+        } else if (Array.isArray(result)) {
+          clientsData = result;
+        }
+        
+        console.log('Processed clients data:', clientsData); // Debug log
+        setClients(Array.isArray(clientsData) ? clientsData : []);
+      } else {
+        console.error('Failed to fetch clients - response not ok:', response.status);
+        setClients([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch clients:', error);
+      setClients([]);
+    }
+  };
+
+  const fetchAgents = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users?role=AGENT,MANAGER`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Filter out soft deleted agents (status !== 'ACTIVE')
+        const activeAgents = (result.data || []).filter((agent: User) => agent.status === 'ACTIVE');
+        setAgents(activeAgents);
+      }
+    } catch (error) {
+      console.error('Failed to fetch agents:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Validate required fields
+      if (!formData.title || !formData.description || !formData.city || !formData.zona || !formData.address) {
+        alert('❌ Plotësoni të gjitha fushat e detyrueshme.');
+        setLoading(false);
+        return;
+      }
+
+      // Ensure numeric fields are valid and add missing required fields
+      const cleanedFormData = {
+        ...formData,
+        listingType: 'SALE', // Add missing required field
+        price: isNaN(formData.price) ? 50000 : formData.price,
+        bedrooms: isNaN(formData.bedrooms) ? 1 : formData.bedrooms,
+        bathrooms: isNaN(formData.bathrooms) ? 1 : formData.bathrooms,
+        siperfaqeMin: isNaN(formData.siperfaqeMin) ? 50 : formData.siperfaqeMin,
+        siperfaqeMax: isNaN(formData.siperfaqeMax) ? 50 : formData.siperfaqeMax,
+        yearBuilt: isNaN(formData.yearBuilt) ? new Date().getFullYear() : Math.min(formData.yearBuilt, new Date().getFullYear()),
+        parkingSpaces: isNaN(formData.parkingSpaces) ? 0 : formData.parkingSpaces,
+        // Fix gallery URLs by encoding spaces and special characters
+        gallery: formData.gallery.map(url => encodeURI(url.replace(/\s+/g, '%20'))),
+        // Clean virtual tour URL
+        virtualTourUrl: formData.virtualTourUrl?.trim() || undefined,
+        // Agent assignments
+        agentOwnerId: formData.agentOwnerId?.trim() || undefined,
+        collaboratingAgentId: formData.collaboratingAgentId?.trim() || undefined,
+        // Client assignment
+        clientId: formData.clientId?.trim() || undefined,
+      };
+
+      console.log('Submitting property data:', cleanedFormData);
+
       const token = localStorage.getItem('access_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties`, {
         method: 'POST',
@@ -77,16 +180,17 @@ export default function NewPropertyPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(cleanedFormData),
       });
 
       if (response.ok) {
         const data = await response.json();
-        flashSuccess('✅ Prona u krijua me sukses!');
+        alert('✅ Prona u krijua me sukses!');
         window.location.href = '/crm/properties';
       } else {
         const errorData = await response.json();
-        flashError(`❌ Gabim: ${errorData.message || 'Nuk mund të krijohet prona'}`);
+        console.error('❌ Server response:', errorData);
+        alert(`❌ Gabim: ${errorData.message || 'Nuk mund të krijohet prona'}\n\nDetajet: ${JSON.stringify(errorData.errors || {}, null, 2)}`);
       }
     } catch (error) {
       console.error('Error creating property:', error);
@@ -97,7 +201,13 @@ export default function NewPropertyPage() {
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Handle numeric fields to prevent NaN
+    if (['price', 'bedrooms', 'bathrooms', 'siperfaqeMin', 'siperfaqeMax', 'yearBuilt', 'parkingSpaces'].includes(field)) {
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      setFormData(prev => ({ ...prev, [field]: isNaN(numValue) ? (field === 'price' ? 50000 : field === 'yearBuilt' ? new Date().getFullYear() : field === 'bedrooms' || field === 'bathrooms' ? 1 : field === 'siperfaqeMin' || field === 'siperfaqeMax' ? 50 : 0) : numValue }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleDocumentsChange = (newDocuments: any[]) => {
@@ -210,6 +320,21 @@ export default function NewPropertyPage() {
                     style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
                   >
                     {propertyTypes.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>
+                    Shitje ose Qira *
+                  </label>
+                  <select
+                    value={formData.listingType}
+                    onChange={(e) => handleInputChange('listingType', e.target.value)}
+                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
+                  >
+                    {listingTypes.map(type => (
                       <option key={type.value} value={type.value}>{type.label}</option>
                     ))}
                   </select>
@@ -355,11 +480,39 @@ export default function NewPropertyPage() {
                   </label>
                   <input
                     type="number"
-                    min="1000"
+                    min="100"
                     value={formData.price}
                     onChange={(e) => handleInputChange('price', parseFloat(e.target.value))}
-                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
+                    disabled={formData.priceOnRequest}
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.75rem', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '0.5rem', 
+                      fontSize: '1rem',
+                      backgroundColor: formData.priceOnRequest ? '#f3f4f6' : 'white',
+                      color: formData.priceOnRequest ? '#6b7280' : 'inherit'
+                    }}
                   />
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    marginTop: '0.75rem',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    background: '#fef3c7',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #f59e0b'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.priceOnRequest}
+                      onChange={(e) => handleInputChange('priceOnRequest', e.target.checked)}
+                      style={{ width: '1.25rem', height: '1.25rem', accentColor: '#f59e0b' }}
+                    />
+                    <span style={{ fontWeight: '500', color: '#92400e' }}>💰 Çmimi sipas kërkesës</span>
+                  </label>
                 </div>
 
                 <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem', margin: '0.5rem 0 0 0' }}>
@@ -502,6 +655,70 @@ export default function NewPropertyPage() {
                 placeholder="https://example.com/virtual-tour"
                 style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
               />
+            </div>
+
+            {/* Agent Assignment */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+              {/* Primary Agent */}
+              <div>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>
+                  Agjenti Kryesor *
+                </label>
+                <select
+                  value={formData.agentOwnerId}
+                  onChange={(e) => handleInputChange('agentOwnerId', e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
+                  required
+                >
+                  <option value="">Zgjidh Agjentin...</option>
+                  {agents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.firstName} {agent.lastName} ({agent.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Collaborating Agent */}
+              <div>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>
+                  Agjenti Bashkëpunues (Opsional)
+                </label>
+                <select
+                  value={formData.collaboratingAgentId}
+                  onChange={(e) => handleInputChange('collaboratingAgentId', e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
+                >
+                  <option value="">Zgjidh Agjentin...</option>
+                  {agents.filter(agent => agent.id !== formData.agentOwnerId).map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.firstName} {agent.lastName} ({agent.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Client Assignment */}
+            <div style={{ marginBottom: '2rem' }}>
+              <label style={{ display: 'block', fontWeight: '500', marginBottom: '0.5rem', color: '#374151' }}>
+                Pronari (Opsional)
+              </label>
+              <select
+                value={formData.clientId}
+                onChange={(e) => handleInputChange('clientId', e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '1rem' }}
+              >
+                <option value="">Zgjidh Pronarin...</option>
+                {Array.isArray(clients) && clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.firstName} {client.lastName} - {client.mobile || 'N/A'}
+                  </option>
+                ))}
+              </select>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                Mund të lini bosh dhe ta caktoni më vonë
+              </p>
             </div>
 
             {/* Document Upload */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { MagnifyingGlassIcon, MapPinIcon, CurrencyEuroIcon, BuildingOfficeIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, MapPinIcon, CurrencyEuroIcon, BuildingOfficeIcon, HomeIcon } from '@heroicons/react/20/solid';
 import { useRouter } from 'next/navigation';
 
 const propertyTypes = [
@@ -32,6 +32,41 @@ export function HeroSection() {
     priceMax: ''
   });
 
+  const [backgroundImage, setBackgroundImage] = useState<string>('');
+
+  // Fetch background image from settings
+  useEffect(() => {
+    const fetchBackgroundImage = async () => {
+      try {
+        // Add cache-busting parameter to prevent stale data
+        const cacheBuster = `?t=${Date.now()}`;
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings${cacheBuster}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data.homepageBackgroundImage) {
+            // Add cache-busting to image URL as well
+            const imageUrl = result.data.homepageBackgroundImage;
+            const separator = imageUrl.includes('?') ? '&' : '?';
+            setBackgroundImage(`${imageUrl}${separator}v=${Date.now()}`);
+          }
+        }
+      } catch (error) {
+        console.log('No background image set');
+      }
+    };
+    fetchBackgroundImage();
+
+    // Listen for background image updates
+    const handleBackgroundUpdate = () => {
+      fetchBackgroundImage();
+    };
+
+    window.addEventListener('background-image-updated', handleBackgroundUpdate);
+    return () => {
+      window.removeEventListener('background-image-updated', handleBackgroundUpdate);
+    };
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -51,8 +86,20 @@ export function HeroSection() {
     setSearchData(prev => ({ ...prev, [key]: value }));
   };
 
+  const backgroundStyle = backgroundImage 
+    ? {
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }
+    : {};
+
   return (
-    <section className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-900 via-orange-800 to-red-900">
+    <section 
+      className="relative min-h-screen overflow-hidden bg-gradient-to-br from-orange-900 via-orange-800 to-red-900"
+      style={backgroundStyle}
+    >
       {/* Animated Background Elements */}
       <motion.div 
         style={{ y, opacity }}
@@ -230,29 +277,7 @@ export function HeroSection() {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="flex flex-wrap justify-center gap-6 pt-4 border-t border-gray-200">
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    className="text-center"
-                  >
-                    <div className="text-2xl font-bold text-orange-600">10,000+</div>
-                    <div className="text-sm text-gray-600">Prona aktive</div>
-                  </motion.div>
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    className="text-center"
-                  >
-                    <div className="text-2xl font-bold text-orange-600">500+</div>
-                    <div className="text-sm text-gray-600">Agjentë</div>
-                  </motion.div>
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    className="text-center"
-                  >
-                    <div className="text-2xl font-bold text-orange-600">50+</div>
-                    <div className="text-sm text-gray-600">Qytete</div>
-                  </motion.div>
-                </div>
+                {/* Removed fake stats section */}
               </form>
             </motion.div>
 

@@ -16,7 +16,7 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   BuildingOfficeIcon
-} from '@heroicons/react/24/outline';
+} from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { formatPriceWithPreference, convertPrice } from '@/lib/currency';

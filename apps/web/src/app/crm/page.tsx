@@ -44,13 +44,6 @@ export default function CRMLoginPage() {
     }
   };
 
-  const quickLogin = (email: string, password: string, role: string) => {
-    setCredentials({ email, password });
-    setTimeout(() => {
-      const event = new Event('submit', { bubbles: true, cancelable: true });
-      document.querySelector('form')?.dispatchEvent(event);
-    }, 100);
-  };
 
   return (
     <div style={{ 
@@ -171,59 +164,6 @@ export default function CRMLoginPage() {
           </button>
         </form>
 
-        {/* Quick Login Options */}
-        <div style={{ marginBottom: '2rem' }}>
-          <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.875rem', marginBottom: '1rem' }}>
-            Hyrje e shpejtë për testim:
-          </p>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <button
-              onClick={() => quickLogin('admin@wayhome.com', 'password123', 'Super Admin')}
-              style={{ 
-                background: '#dc2626', 
-                color: 'white', 
-                padding: '0.5rem 1rem', 
-                border: 'none', 
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                cursor: 'pointer'
-              }}
-            >
-              🔑 Super Admin (admin@wayhome.com)
-            </button>
-            
-            <button
-              onClick={() => quickLogin('admin.tirana@wayhome.com', 'password123', 'Office Admin')}
-              style={{ 
-                background: '#7c3aed', 
-                color: 'white', 
-                padding: '0.5rem 1rem', 
-                border: 'none', 
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                cursor: 'pointer'
-              }}
-            >
-              👔 Office Admin Tirana
-            </button>
-            
-            <button
-              onClick={() => quickLogin('agent1@wayhome.com', 'password123', 'Agent')}
-              style={{ 
-                background: '#059669', 
-                color: 'white', 
-                padding: '0.5rem 1rem', 
-                border: 'none', 
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                cursor: 'pointer'
-              }}
-            >
-              👨‍💼 Agent (agent1@wayhome.com)
-            </button>
-          </div>
-        </div>
 
         {/* Links */}
         <div style={{ textAlign: 'center' }}>

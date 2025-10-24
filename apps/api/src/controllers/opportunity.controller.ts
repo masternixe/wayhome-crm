@@ -727,9 +727,24 @@ export class OpportunityController {
         return;
       }
 
-      // Calculate agent shares based on commission (not gross)
-      const agentSharePrimary = commissionAmount * splitRatio;
-      const agentShareCollaborator = collaboratingAgentId ? commissionAmount * (1 - splitRatio) : null;
+      // Calculate commission splits based on new structure
+      // Super Admin always gets 50% of commission
+      const superAdminShare = commissionAmount * 0.5;
+      
+      // Remaining 50% is split between agents
+      const remainingCommission = commissionAmount * 0.5;
+      
+      let agentSharePrimary: number;
+      let agentShareCollaborator: number | null = null;
+      
+      if (collaboratingAgentId) {
+        // If there's a collaborating agent, split the remaining 50% equally (25% each)
+        agentSharePrimary = remainingCommission * 0.5; // 25% of total
+        agentShareCollaborator = remainingCommission * 0.5; // 25% of total
+      } else {
+        // If no collaborating agent, primary agent gets all remaining 50%
+        agentSharePrimary = remainingCommission; // 50% of total
+      }
 
       // Create transaction with agent from opportunity
       const transaction = await this.prisma.transaction.create({
@@ -744,6 +759,7 @@ export class OpportunityController {
           splitRatio,
           grossAmount,
           commissionAmount,
+          superAdminShare,
           agentSharePrimary,
           agentShareCollaborator,
           currency,

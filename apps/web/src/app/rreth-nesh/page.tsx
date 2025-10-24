@@ -105,7 +105,7 @@ export default function RrethNeshPage() {
             >
               {[
                 { number: "10+", label: "Vjet Përvojë", icon: TrophyIcon },
-                { number: "10,000+", label: "Klientë të Kënaqur", icon: UserGroupIcon },
+                { number: "10,000+", label: "Pronarë të Kënaqur", icon: UserGroupIcon },
                 { number: "100%", label: "Përkushtim", icon: HeartIcon }
               ].map((stat, index) => (
                 <motion.div
@@ -411,7 +411,7 @@ export default function RrethNeshPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             {[
               { icon: ChartBarIcon, number: '10,000+', label: 'Prona të Shitura', color: 'from-orange-500 to-red-500' },
-              { icon: UsersIcon, number: '25,000+', label: 'Klientë të Kënaqur', color: 'from-red-500 to-pink-500' },
+              { icon: UsersIcon, number: '25,000+', label: 'Pronarë të Kënaqur', color: 'from-red-500 to-pink-500' },
               { icon: TrophyIcon, number: '50+', label: 'Çmime dhe Njohje', color: 'from-yellow-500 to-orange-500' },
               { icon: BuildingOfficeIcon, number: '5', label: 'Zyra në Të Gjithë Vendin', color: 'from-orange-600 to-red-600' }
             ].map((achievement, index) => (
@@ -478,78 +478,7 @@ export default function RrethNeshPage() {
         </div>
       </section>
 
-      {/* Team Section */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-              Ekipi Drejtues
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Profesionistë me përvojë të gjatë që udhëheqin Wayhome drejt suksesit të vazhdueshëm
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 max-w-6xl mx-auto">
-            {[
-              {
-                name: 'Arjan Berisha',
-                position: 'Drejtor i Përgjithshëm',
-                experience: '15+ vjet përvojë',
-                description: 'Lider vizionar me përvojë të gjatë në zhvillimin e kompanive dhe strategjitë e rritjes.',
-                specialties: ['Strategji biznesore', 'Zhvillim të tregut', 'Udhëheqje ekipi']
-              },
-              {
-                name: 'Elira Dushku',
-                position: 'Drejtoreshë e Shitjeve',
-                experience: '12+ vjet përvojë',
-                description: 'Eksperte në shitjet dhe marrëdhëniet me klientët me rekord të shkëlqyer rezultatesh.',
-                specialties: ['Menaxhim shitjesh', 'Trajnim ekipi', 'Strategji marketingu']
-              },
-              {
-                name: 'Blerim Krasniqi',
-                position: 'Drejtor Teknologjie',
-                experience: '10+ vjet përvojë',
-                description: 'Përgjegjës për inovacionin teknologjik dhe zhvillimin e platformave dixhitale.',
-                specialties: ['Zhvillim software', 'PropTech', 'Automatizim procesesh']
-              }
-            ].map((member, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                viewport={{ once: true }}
-                whileHover={{ y: -5 }}
-                className="text-center bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
-              >
-                <div className="w-32 h-32 bg-gradient-to-br from-orange-400 to-red-500 rounded-full mx-auto mb-6 flex items-center justify-center">
-                  <span className="text-4xl font-bold text-white">{member.name.split(' ').map(n => n[0]).join('')}</span>
-                </div>
-                
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{member.name}</h3>
-                <p className="text-orange-600 font-semibold mb-2">{member.position}</p>
-                <p className="text-gray-500 text-sm mb-4">{member.experience}</p>
-                <p className="text-gray-600 leading-relaxed mb-6">{member.description}</p>
-                
-                <div className="space-y-2">
-                  {member.specialties.map((specialty, idx) => (
-                    <div key={idx} className="inline-block bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm mr-2 mb-2">
-                      {specialty}
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Leadership Team section removed */}
 
       {/* Technology & Innovation Section */}
       <section className="py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-orange-900 text-white">
@@ -733,89 +662,7 @@ export default function RrethNeshPage() {
       </section>
 
       {/* Contact Information Section */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-              Zyrat Tona
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Jemi të pranishëm në qytetet kryesore të Shqipërisë për t'ju shërbyer më afër
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                city: 'Tirana - Qendra',
-                address: 'Bulevardi "Dëshmorët e Kombit", Kullat Binjake, Kulla 1, Kati 15',
-                phone: '+355 4 2234567',
-                email: 'tirana@wayhome.al',
-                hours: 'Hënë - Premte: 9:00 - 18:00'
-              },
-              {
-                city: 'Durrës',
-                address: 'Rruga "Taulantia", Qendra e Biznesit, Kati 3',
-                phone: '+355 52 234567',
-                email: 'durres@wayhome.al',
-                hours: 'Hënë - Premte: 9:00 - 18:00'
-              },
-              {
-                city: 'Vlorë',
-                address: 'Sheshi "Pavarësia", Pallati i Kulturës, Kati 2',
-                phone: '+355 33 234567',
-                email: 'vlore@wayhome.al',
-                hours: 'Hënë - Premte: 9:00 - 18:00'
-              }
-            ].map((office, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                whileHover={{ y: -5 }}
-                className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
-              >
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
-                    <MapPinIcon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900">{office.city}</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <MapPinIcon className="w-5 h-5 text-orange-500 mt-1 flex-shrink-0" />
-                    <span className="text-gray-600">{office.address}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <PhoneIcon className="w-5 h-5 text-orange-500 flex-shrink-0" />
-                    <span className="text-gray-600">{office.phone}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <span className="w-5 h-5 text-orange-500 flex-shrink-0">@</span>
-                    <span className="text-gray-600">{office.email}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <ClockIcon className="w-5 h-5 text-orange-500 flex-shrink-0" />
-                    <span className="text-gray-600">{office.hours}</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Offices section removed */}
 
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-br from-orange-900 via-orange-800 to-red-900 text-white relative overflow-hidden">

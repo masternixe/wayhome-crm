@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPinIcon, PhoneIcon, EnvelopeIcon, UserGroupIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, PhoneIcon, EnvelopeIcon, UserGroupIcon, HomeIcon } from '@heroicons/react/20/solid';
 
 interface Office {
   id: string;
