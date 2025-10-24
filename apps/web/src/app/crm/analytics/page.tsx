@@ -20,6 +20,7 @@ import {
 import CRMHeader from '@/components/crm/CRMHeader';
 import AnalyticsChart from '@/components/crm/AnalyticsChart';
 import DateRangePicker from '@/components/crm/DateRangePicker';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface User {
   id: string;
@@ -77,6 +78,7 @@ interface AnalyticsData {
   salesByOffice: Array<{
     officeId: string;
     officeName: string;
+    officeEmail?: string | null;
     sales: number;
     revenue: number;
     deals: number;
@@ -292,11 +294,11 @@ export default function CRMAnalyticsPage() {
     
     if (selectedOffice !== 'all') {
       const office = analytics.salesByOffice.find(o => o.officeId === selectedOffice);
-      return office ? [{ label: office.officeName, value: office.revenue }] : [];
+      return office ? [{ label: getOfficeDisplayName({ name: office.officeName, email: office.officeEmail }), value: office.revenue }] : [];
     }
     
     return analytics.salesByOffice.map(office => ({
-      label: office.officeName,
+      label: getOfficeDisplayName({ name: office.officeName, email: office.officeEmail }),
       value: office.revenue
     }));
   };
@@ -577,7 +579,7 @@ export default function CRMAnalyticsPage() {
                         </div>
                         <div>
                           <div style={{ fontWeight: '500', color: '#1f2937' }}>
-                            {office.officeName}
+                            {getOfficeDisplayName({ name: office.officeName, email: office.officeEmail })}
                           </div>
                           <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                             {office.deals} deals • {office.agents} agents

@@ -23,6 +23,7 @@ import {
 // Removed useCurrency import - now using PriceDisplay component
 import { PriceDisplay } from '@/components/ui/price-display';
 import CRMHeader from '@/components/crm/CRMHeader';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface Property {
   id: string;
@@ -668,7 +669,7 @@ export default function CRMPropertiesPage() {
                     </div>
                     
                     <div style={{ fontSize: '0.875rem', color: '#1f2937' }}>
-                      {property.office.name}
+                      {getOfficeDisplayName(property.office)}
                     </div>
                     
                     <div style={{ display: 'flex', gap: '0.5rem' }}>

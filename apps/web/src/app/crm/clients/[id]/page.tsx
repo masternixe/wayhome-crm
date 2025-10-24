@@ -14,6 +14,7 @@ import {
   CalendarIcon,
 } from '@heroicons/react/24/outline';
 import CRMHeader from '@/components/crm/CRMHeader';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface ClientComment {
   id: string;
@@ -640,7 +641,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                 Informacione Zyre
               </h3>
               <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                <p style={{ margin: '0 0 0.5rem 0' }}><strong>{client.office.name}</strong></p>
+                <p style={{ margin: '0 0 0.5rem 0' }}><strong>{getOfficeDisplayName(client.office)}</strong></p>
                 {client.office.address && (
                   <p style={{ margin: '0 0 0.5rem 0' }}>{client.office.address}</p>
                 )}

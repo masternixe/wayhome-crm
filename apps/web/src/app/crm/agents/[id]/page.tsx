@@ -19,6 +19,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import apiService from '@/services/apiService';
 import { formatUserRole } from '@/lib/utils';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface Agent {
   id: string;
@@ -308,7 +309,7 @@ function AgentDetailContent({ params }: { params: { id: string } }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <BuildingOfficeIcon style={{ width: '1.25rem', height: '1.25rem', color: '#6b7280' }} />
                   <span style={{ color: '#1f2937' }}>
-                    {agent.office ? `${agent.office.name}, ${agent.office.city}` : 'Pa zyrë'}
+                    {agent.office ? `${getOfficeDisplayName(agent.office)}, ${agent.office.city}` : 'Pa zyrë'}
                   </span>
                 </div>
 
@@ -553,7 +554,7 @@ function AgentDetailContent({ params }: { params: { id: string } }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
               <div>
                 <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>Emri i Zyrës</div>
-                <div style={{ fontSize: '1rem', fontWeight: '500', color: '#1f2937' }}>{agent.office.name}</div>
+                <div style={{ fontSize: '1rem', fontWeight: '500', color: '#1f2937' }}>{getOfficeDisplayName(agent.office)}</div>
               </div>
 
               <div>

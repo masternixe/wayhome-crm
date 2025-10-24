@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import CRMHeader from '@/components/crm/CRMHeader';
 import apiService from '@/services/apiService';
 import { notify } from '@/lib/notify';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface Office {
   id: string;
@@ -242,7 +243,7 @@ export default function OfficesManagementPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
                     <div style={{ flex: 1 }}>
                       <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: '0 0 0.5rem 0' }}>
-                        {office.name}
+                        {getOfficeDisplayName(office)}
                       </h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', color: '#6b7280', fontSize: '0.875rem' }}>
                         <p style={{ margin: 0 }}>📍 {office.address}, {office.city}</p>

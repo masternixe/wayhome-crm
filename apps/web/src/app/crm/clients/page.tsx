@@ -20,6 +20,7 @@ import {
 } from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 import { formatUserRole } from '@/lib/utils';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface Client {
   id: string;
@@ -515,7 +516,7 @@ export default function CRMClientsPage() {
                       </div>
                     )}
                     <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                      🏢 {client.office.name}
+                      🏢 {getOfficeDisplayName(client.office)}
                     </div>
                   </div>
 

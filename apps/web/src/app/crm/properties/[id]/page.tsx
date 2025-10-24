@@ -20,7 +20,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { notifyError, notifySuccess, flashSuccess, flashError } from '@/lib/notify';
 import CRMHeader from '@/components/crm/CRMHeader';
-
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 import ClientAssignmentModal from '@/components/crm/ClientAssignmentModal';
 
 interface Property {
@@ -962,7 +962,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 Informacione Zyre
               </h3>
               <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                <p style={{ margin: '0 0 0.5rem 0' }}><strong>{property.office.name}</strong></p>
+                <p style={{ margin: '0 0 0.5rem 0' }}><strong>{getOfficeDisplayName(property.office)}</strong></p>
                 <p style={{ margin: '0 0 0.5rem 0' }}>{property.office.address}</p>
                 <p style={{ margin: 0 }}>{property.office.phone}</p>
               </div>

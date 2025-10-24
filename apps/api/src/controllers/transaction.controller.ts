@@ -408,10 +408,10 @@ export class TransactionController {
       }
 
       // Calculate commission splits based on new structure
-      // Super Admin always gets 50% of commission
-      const superAdminShare = data.commissionAmount * 0.5;
+      // Office always gets 50% of commission as base
+      let superAdminShare = data.commissionAmount * 0.5;
       
-      // Remaining 50% is split between agents
+      // Remaining 50% is handled differently based on collaborating agent
       const remainingCommission = data.commissionAmount * 0.5;
       
       let agentSharePrimary: number;
@@ -422,8 +422,11 @@ export class TransactionController {
         agentSharePrimary = remainingCommission * 0.5; // 25% of total
         agentShareCollaborator = remainingCommission * 0.5; // 25% of total
       } else {
-        // If no collaborating agent, primary agent gets all remaining 50%
-        agentSharePrimary = remainingCommission; // 50% of total
+        // If no collaborating agent, the remaining 50% is split:
+        // - 50% to office (additional 25% of total)
+        // - 50% to agent (25% of total)
+        superAdminShare += remainingCommission * 0.5; // Office gets 75% total
+        agentSharePrimary = remainingCommission * 0.5; // Agent gets 25% total
       }
 
       const transaction = await this.prisma.transaction.create({

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPinIcon, PhoneIcon, EnvelopeIcon, UserGroupIcon, HomeIcon } from '@heroicons/react/20/solid';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface Office {
   id: string;
@@ -158,7 +159,7 @@ export default function ZyratPage() {
                 }}>
                   <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏢</div>
                   <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem', margin: '0 0 0.5rem 0' }}>
-                    {office.name}
+                    {getOfficeDisplayName(office)}
                   </h3>
                   <p style={{ opacity: 0.9, margin: 0 }}>{office.city}</p>
                 </div>

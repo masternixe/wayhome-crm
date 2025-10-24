@@ -231,6 +231,7 @@ export class AnalyticsController {
     return offices.map(office => ({
       officeId: office.id,
       officeName: office.name,
+      officeEmail: office.email,
       sales: office.transactions.length,
       revenue: office.transactions.reduce((sum, t) => sum + t.grossAmount, 0),
       deals: office.transactions.length,

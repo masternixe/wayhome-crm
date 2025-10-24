@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon } from '@heroicons/react/20/solid';
 import CRMHeader from '@/components/crm/CRMHeader';
 
 interface User {

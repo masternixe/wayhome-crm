@@ -15,6 +15,7 @@ import {
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import CRMHeader from '@/components/crm/CRMHeader';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface Lead {
   id: string;
@@ -722,7 +723,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 Informacione Zyre
               </h3>
               <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                <p style={{ margin: '0 0 0.5rem 0' }}><strong>{lead.office.name}</strong></p>
+                <p style={{ margin: '0 0 0.5rem 0' }}><strong>{getOfficeDisplayName(lead.office)}</strong></p>
                 <p style={{ margin: '0 0 0.5rem 0' }}>{lead.office.address}</p>
                 <p style={{ margin: 0 }}>{lead.office.phone}</p>
               </div>

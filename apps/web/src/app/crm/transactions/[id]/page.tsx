@@ -23,6 +23,7 @@ import {
 import CRMHeader from '@/components/crm/CRMHeader';
 import { useCurrency } from '@/hooks/useCurrency';
 import { formatPriceWithPreference, convertPrice } from '@/lib/currency';
+import { getOfficeDisplayName } from '@/lib/officeDisplay';
 
 interface Transaction {
   id: string;
@@ -1020,7 +1021,7 @@ export default function TransactionDetailPage({ params }: { params: { id: string
                 Informacione Zyre
               </h3>
               <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                <p style={{ margin: '0 0 0.5rem 0' }}><strong>{transaction.office.name}</strong></p>
+                <p style={{ margin: '0 0 0.5rem 0' }}><strong>{getOfficeDisplayName(transaction.office)}</strong></p>
                 <p style={{ margin: '0 0 0.5rem 0' }}>{transaction.office.address}</p>
                 <p style={{ margin: 0 }}>{transaction.office.phone}</p>
               </div>

@@ -358,6 +358,27 @@ async function main() {
     const status = i < 10 ? TransactionStatus.CLOSED : randomChoice([TransactionStatus.CLOSED, TransactionStatus.PENDING, TransactionStatus.OPEN]);
     const closeDate = status === TransactionStatus.CLOSED ? subDays(new Date(), randomInt(0, 30)) : null;
     
+    // Calculate commission splits based on new structure
+    // Office always gets 50% of commission as base
+    let superAdminShare = commissionAmount * 0.5;
+    const remainingCommission = commissionAmount * 0.5;
+    
+    let agentSharePrimary: number;
+    let agentShareCollaborator: number;
+    
+    if (property.collaboratingAgentId) {
+      // If there's a collaborating agent, split the remaining 50% equally (25% each)
+      agentSharePrimary = remainingCommission * 0.5; // 25% of total
+      agentShareCollaborator = remainingCommission * 0.5; // 25% of total
+    } else {
+      // If no collaborating agent, the remaining 50% is split:
+      // - 50% to office (additional 25% of total)
+      // - 50% to agent (25% of total)
+      superAdminShare += remainingCommission * 0.5; // Office gets 75% total
+      agentSharePrimary = remainingCommission * 0.5; // Agent gets 25% total
+      agentShareCollaborator = 0;
+    }
+    
     await prisma.transaction.create({
       data: {
         officeId: opportunity.officeId,
@@ -372,8 +393,9 @@ async function main() {
         closeDate,
         grossAmount,
         commissionAmount,
-        agentSharePrimary: commissionAmount * splitRatio,
-        agentShareCollaborator: property.collaboratingAgentId ? commissionAmount * (1 - splitRatio) : 0,
+        superAdminShare,
+        agentSharePrimary,
+        agentShareCollaborator,
         currency: property.currency,
         contractNumber: status === TransactionStatus.CLOSED ? `CT${String(i + 1).padStart(6, '0')}` : null,
         notes: status === TransactionStatus.CLOSED ? 'Transaksion i kryer me sukses, klient i kënaqur' : null,
