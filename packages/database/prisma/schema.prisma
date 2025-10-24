@@ -28,6 +28,7 @@ enum Currency {
 }
 
 enum PropertyType {
+  DUPLEX
   APARTMENT
   HOUSE
   VILLA
