@@ -223,6 +223,7 @@ model Property {
   siperfaqeMin          Float
   siperfaqeMax          Float
   price                 Float
+  priceOnRequest        Boolean        @default(false)
   currency              Currency       @default(EUR)
   ashensor              Boolean        @default(false)
   status                PropertyStatus @default(LISTED)
