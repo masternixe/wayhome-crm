@@ -94,9 +94,6 @@ export default function CRMHeader({ currentPage, user: propUser }: CRMHeaderProp
 
   if (user?.role === 'SUPER_ADMIN') {
     navItems.push({ href: '/crm/offices', label: 'Zyrat', key: 'offices' });
-  }
-
-  if (isAdmin) {
     navItems.push({ href: '/crm/settings', label: 'Cilësimet', key: 'settings' });
   }
 
