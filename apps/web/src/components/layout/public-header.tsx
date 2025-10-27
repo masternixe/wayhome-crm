@@ -59,7 +59,7 @@ export function PublicHeader() {
               <span className="sr-only">Wayhome</span>
               <div className="flex items-center space-x-3">
                 <img 
-                  src="/logo.png" 
+                  src="/logo.svg" 
                   alt="Wayhome Logo" 
                   className="h-10 w-auto"
                 />

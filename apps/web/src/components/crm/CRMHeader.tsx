@@ -107,7 +107,7 @@ export default function CRMHeader({ currentPage, user: propUser }: CRMHeaderProp
           <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
             <Link href="/crm/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
               <img 
-                src="/logo.png" 
+                src="/logo.svg" 
                 alt="Wayhome Logo" 
                 style={{ height: '2rem', width: 'auto' }}
               />

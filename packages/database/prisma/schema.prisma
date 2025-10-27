@@ -629,6 +629,16 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}
+
 model SystemSettings {
   id            String   @id @default(cuid())
   key           String   @unique
