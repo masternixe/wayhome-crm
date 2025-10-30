@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { 
   PhotoIcon, 
   PlusIcon, 
@@ -276,32 +277,18 @@ export default function ImageUploadGallery({
                 border: '2px solid #f59e0b',
                 boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
               }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
+                <Image 
                   src={images[0]} 
                   alt="Featured property image"
+                  fill
+                  sizes="400px"
                   style={{ 
-                    width: '100%', 
-                    height: '100%', 
                     objectFit: 'cover'
                   }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (nextElement) nextElement.style.display = 'flex';
-                  }}
+                  priority
+                  quality={85}
+                  unoptimized={images[0].includes('/api/v1/uploads')} // Skip optimization for our API images (already optimized)
                 />
-                <div style={{ 
-                  display: 'none',
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  width: '100%', 
-                  height: '100%',
-                  fontSize: '3rem',
-                  color: '#6b7280'
-                }}>
-                  🖼️
-                </div>
                 <div style={{
                   position: 'absolute',
                   bottom: '0.5rem',
@@ -358,33 +345,19 @@ export default function ImageUploadGallery({
                   opacity: draggedIndex === index ? 0.8 : 1
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
+                <Image 
                   src={url} 
                   alt={`Property image ${index + 1}`}
+                  fill
+                  sizes="120px"
                   style={{ 
-                    width: '100%', 
-                    height: '100%', 
                     objectFit: 'cover',
                     pointerEvents: 'none'
                   }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (nextElement) nextElement.style.display = 'flex';
-                  }}
+                  loading="lazy"
+                  quality={75}
+                  unoptimized={url.includes('/api/v1/uploads')} // Skip optimization for our API images
                 />
-                <div style={{ 
-                  display: 'none',
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  width: '100%', 
-                  height: '100%',
-                  fontSize: '2rem',
-                  color: '#6b7280'
-                }}>
-                  🖼️
-                </div>
                 
                 {canEdit && (
                   <>

@@ -418,13 +418,24 @@ export class UploadController {
         if (secureBaseUrl.includes('103.86.176.122')) {
           secureBaseUrl = 'https://wayhome.al';
         }
+        const imagePath = path.join(process.cwd(), 'uploads', 'images', file.filename);
+
+        // Compress the main image in-place
+        try {
+          await this.imageService.optimizeImage(imagePath, {
+            quality: 85,
+            format: file.mimetype.includes('png') ? 'png' : 'jpeg'
+          });
+          console.log(`✅ Image compressed: ${file.filename}`);
+        } catch (compressionError) {
+          console.warn('Image compression failed, keeping original:', compressionError);
+        }
+
         const fileUrl = `${secureBaseUrl}/api/v1/uploads/images/${file.filename}`;
 
-        // Process and optimize the image
+        // Process and optimize the image (generate variants)
         try {
-          const imagePath = path.join(process.cwd(), 'uploads', 'images', file.filename);
-          
-          // Generate optimized variants
+          // Generate optimized variants (thumbnail, small, medium, large)
           const variants = await this.imageService.generateVariants(
             imagePath,
             file.filename,
@@ -433,6 +444,9 @@ export class UploadController {
 
           // Get image metadata
           const metadata = await this.imageService.getImageMetadata(imagePath);
+          
+          // Get actual file size after compression
+          const stats = await fs.stat(imagePath);
 
           res.json({
             success: true,
@@ -442,7 +456,7 @@ export class UploadController {
               variants,
               metadata,
               originalName: file.originalname,
-              size: file.size,
+              size: stats.size, // Return compressed size
               type: file.mimetype,
               uploadedBy: authReq.user.userId,
               uploadedAt: new Date().toISOString(),
@@ -453,13 +467,14 @@ export class UploadController {
           console.warn('Image optimization failed, returning original:', optimizationError);
           
           // Return original image if optimization fails
+          const stats = await fs.stat(imagePath);
           res.json({
             success: true,
             data: {
               id: file.filename,
               url: fileUrl,
               originalName: file.originalname,
-              size: file.size,
+              size: stats.size,
               type: file.mimetype,
               uploadedBy: authReq.user.userId,
               uploadedAt: new Date().toISOString(),

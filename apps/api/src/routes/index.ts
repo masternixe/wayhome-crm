@@ -1104,7 +1104,7 @@ export function createRoutes(
   router.post('/upload', requireAuth(authService), ...uploadController.uploadDocument);
   router.post('/upload/image', requireAuth(authService), ...uploadController.uploadImage);
 
-  // Serve uploaded files with CORS headers and caching
+  // Serve uploaded files with CORS headers and aggressive caching
   router.use('/uploads', (req, res, next) => {
     // Override security headers for uploads
     res.removeHeader('Cross-Origin-Resource-Policy');
@@ -1115,8 +1115,21 @@ export function createRoutes(
     res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    
+    // Aggressive caching for images (1 year)
+    res.header('Cache-Control', 'public, max-age=31536000, immutable');
+    res.header('Expires', new Date(Date.now() + 31536000000).toUTCString());
+    
+    // Add ETag support for better caching
+    res.header('ETag', `"${req.url}"`);
+    
     next();
-  }, createStaticCacheMiddleware(), express.static(path.join(process.cwd(), 'uploads')));
+  }, createStaticCacheMiddleware(), express.static(path.join(process.cwd(), 'uploads'), {
+    maxAge: 31536000000, // 1 year in milliseconds
+    immutable: true,
+    etag: true,
+    lastModified: true
+  }));
 
   return router;
 }
