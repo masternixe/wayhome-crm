@@ -101,6 +101,12 @@ export default function CRMPropertiesPage() {
     priceMin: '',
     priceMax: ''
   });
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   // Helper functions
   const getPropertyTypeLabel = (type: string) => {
@@ -166,6 +172,11 @@ export default function CRMPropertiesPage() {
     }
 
     fetchProperties();
+  }, [page, limit]);
+  
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
   }, [filters]);
 
   const handleDeleteProperty = async (propertyId: string, propertyTitle: string) => {
@@ -201,6 +212,7 @@ export default function CRMPropertiesPage() {
       const token = localStorage.getItem('access_token');
       const params = new URLSearchParams();
       
+      // Add filters
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '' && value !== 'all') {
           // Handle boolean values specifically
@@ -210,6 +222,14 @@ export default function CRMPropertiesPage() {
           params.append(key, value.toString());
         }
       });
+      
+      // Add pagination params
+      params.append('page', page.toString());
+      if (limit !== 9999) {
+        params.append('limit', limit.toString());
+      } else {
+        params.append('limit', '9999'); // For "All" option
+      }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/properties?${params.toString()}`, {
         headers: {
@@ -222,6 +242,10 @@ export default function CRMPropertiesPage() {
         const data = await response.json();
         if (data.success) {
           setProperties(data.data.properties || []);
+          if (data.data.pagination) {
+            setTotalCount(data.data.pagination.total);
+            setTotalPages(data.data.pagination.totalPages);
+          }
         }
       } else {
         // Use mock data if API fails
@@ -267,7 +291,12 @@ export default function CRMPropertiesPage() {
               Menaxhimi i Pronave
             </h1>
             <p style={{ color: '#6b7280', margin: 0 }}>
-              {loading ? 'Duke ngarkuar...' : `${properties.length} prona gjithsej`}
+              {loading ? 'Duke ngarkuar...' : (
+                <>
+                  {`Duke shfaqur ${properties.length} nga ${totalCount} prona gjithsej`}
+                  {limit !== 9999 && ` (Faqja ${page} nga ${totalPages})`}
+                </>
+              )}
             </p>
           </div>
           
@@ -346,24 +375,51 @@ export default function CRMPropertiesPage() {
         <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>Filtra dhe Kërkime</h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              style={{ 
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                background: showFilters ? '#2563eb' : 'white', 
-                color: showFilters ? 'white' : '#374151', 
-                padding: '0.5rem 1rem', 
-                border: '1px solid #d1d5db',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                fontSize: '0.875rem'
-              }}
-            >
-              <AdjustmentsHorizontalIcon style={{ width: '1rem', height: '1rem' }} />
-              {showFilters ? 'Fshih Filtrat' : 'Shfaq Filtrat'}
-            </button>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              {/* Items per page selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Shfaq:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    const newLimit = Number(e.target.value);
+                    setLimit(newLimit);
+                    setPage(1); // Reset to first page when changing limit
+                  }}
+                  style={{ 
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={9999}>Të gjitha</option>
+                </select>
+              </div>
+              
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                style={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  background: showFilters ? '#2563eb' : 'white', 
+                  color: showFilters ? 'white' : '#374151', 
+                  padding: '0.5rem 1rem', 
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <AdjustmentsHorizontalIcon style={{ width: '1rem', height: '1rem' }} />
+                {showFilters ? 'Fshih Filtrat' : 'Shfaq Filtrat'}
+              </button>
+            </div>
           </div>
 
           {showFilters && (
@@ -1074,6 +1130,134 @@ export default function CRMPropertiesPage() {
                 </div>
               ))
             )}
+          </div>
+        )}
+        
+        {/* Pagination Controls */}
+        {!loading && properties.length > 0 && limit !== 9999 && totalPages > 1 && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '1rem', 
+            padding: '1.5rem', 
+            marginTop: '1.5rem',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            {/* Page info */}
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              Faqja {page} nga {totalPages} ({totalCount} total)
+            </div>
+            
+            {/* Pagination buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {/* Previous button */}
+              <button
+                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                disabled={page === 1}
+                style={{ 
+                  padding: '0.5rem 1rem',
+                  background: page === 1 ? '#f3f4f6' : 'white',
+                  color: page === 1 ? '#9ca3af' : '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  cursor: page === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                ← Mëparshme
+              </button>
+              
+              {/* Page numbers */}
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                {/* First page */}
+                {page > 3 && (
+                  <>
+                    <button
+                      onClick={() => setPage(1)}
+                      style={{ 
+                        padding: '0.5rem 0.75rem',
+                        background: 'white',
+                        color: '#374151',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      1
+                    </button>
+                    {page > 4 && (
+                      <span style={{ padding: '0.5rem', color: '#9ca3af' }}>...</span>
+                    )}
+                  </>
+                )}
+                
+                {/* Page numbers around current page */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === page || p === page - 1 || p === page + 1 || p === page - 2 || p === page + 2)
+                  .filter(p => p > 0 && p <= totalPages)
+                  .map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      style={{ 
+                        padding: '0.5rem 0.75rem',
+                        background: p === page ? '#2563eb' : 'white',
+                        color: p === page ? 'white' : '#374151',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: p === page ? '600' : 'normal'
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                
+                {/* Last page */}
+                {page < totalPages - 2 && (
+                  <>
+                    {page < totalPages - 3 && (
+                      <span style={{ padding: '0.5rem', color: '#9ca3af' }}>...</span>
+                    )}
+                    <button
+                      onClick={() => setPage(totalPages)}
+                      style={{ 
+                        padding: '0.5rem 0.75rem',
+                        background: 'white',
+                        color: '#374151',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              {/* Next button */}
+              <button
+                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={page === totalPages}
+                style={{ 
+                  padding: '0.5rem 1rem',
+                  background: page === totalPages ? '#f3f4f6' : 'white',
+                  color: page === totalPages ? '#9ca3af' : '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Tjetër →
+              </button>
+            </div>
           </div>
         )}
       </div>
